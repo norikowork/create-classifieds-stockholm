@@ -40,7 +40,7 @@ const Index = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState('2025-11');
+  const [selectedMonth, setSelectedMonth] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const postsPerPage = 20;
 
@@ -161,8 +161,10 @@ const Index = () => {
 
   const handleCategoryChange = (categoryUuid: string) => {
     setSelectedCategory(categoryUuid);
-    // カテゴリーを選択したら月選択を2025年11月にリセット
-    setSelectedMonth('2025-11');
+    // イベントカテゴリー以外が選択されたら月選択をクリア
+    if (categoryUuid !== 'cat-events') {
+      setSelectedMonth('');
+    }
   };
 
   const handleLogin = () => {
