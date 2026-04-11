@@ -1,5 +1,1 @@
-import { createRoot } from 'react-dom/client'
-import App from './App.tsx'
-import './index.css'
-
-createRoot(document.getElementById("root")!).render(<App />);
+719464e3da4bc77d3adebed4b6c12d3327f5b89f
