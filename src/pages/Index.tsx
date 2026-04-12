@@ -187,6 +187,11 @@ const Index = () => {
   };
 
   const handleCategoryChange = (categoryUuid: string) => {
+    // 掲示板カテゴリーの場合はフォーラムページに遷移
+    if (categoryUuid === 'cat-bulletin') {
+      navigate('/forum');
+      return;
+    }
     setSelectedCategory(categoryUuid);
     // イベントカテゴリー以外が選択されたら月選択をクリア
     if (categoryUuid !== 'cat-events') {
