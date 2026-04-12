@@ -994,7 +994,7 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
                 <CardTitle className="text-lg">詳細情報</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {(formData.post_type === 'paid' || formData.post_type === 'donation') && (
+                {formData.post_type === 'paid' && (
                   <div className="space-y-2">
                     <Label htmlFor="price">価格</Label>
                     <Input

@@ -27,8 +27,7 @@ const categoryIcons = {
 
 const postTypeLabels = {
   'free': '無料',
-  'paid': '有料',
-  'donation': '寄付'
+  'paid': '有料'
 };
 
 const statusLabels = {
