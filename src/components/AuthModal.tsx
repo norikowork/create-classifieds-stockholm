@@ -40,6 +40,14 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) =>
     try {
       const user = await auth.signIn(loginEmail, loginPassword);
       
+      // Verify token was saved
+      const storedToken = localStorage.getItem('kliv_token');
+      if (!storedToken) {
+        throw new Error('ログインに失敗しました。トークンが保存されませんでした。');
+      }
+      
+      console.log('Login successful, token saved:', storedToken ? 'yes' : 'no');
+      
       // Ensure user profile exists
       const existingProfile = await db.query('user_profiles', {
         user_uuid: `eq.${user.userUuid}`,
@@ -62,6 +70,7 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) =>
         description: "ようこそ！",
       });
     } catch (err: any) {
+      console.error('Login error:', err);
       setError(err.message || 'ログインに失敗しました');
     } finally {
       setIsLoading(false);
@@ -78,6 +87,14 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) =>
       
       // After signup, sign in immediately to authenticate
       const signedInUser = await auth.signIn(registerEmail, registerPassword);
+      
+      // Verify token was saved
+      const storedToken = localStorage.getItem('kliv_token');
+      if (!storedToken) {
+        throw new Error('登録に失敗しました。トークンが保存されませんでした。');
+      }
+      
+      console.log('Registration successful, token saved:', storedToken ? 'yes' : 'no');
       
       // Create user profile
       const existingProfile = await db.query('user_profiles', {
@@ -100,7 +117,9 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) =>
         description: "アカウントが作成されました！",
       });
     } catch (err: any) {
+      console.error('Registration error:', err);
       setError(err.message || '登録に失敗しました');
+    } finally {
       setIsLoading(false);
     }
   };

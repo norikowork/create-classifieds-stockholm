@@ -17,14 +17,38 @@ const Header = () => {
   const checkAuth = async () => {
     try {
       const currentUser = await auth.getUser();
+      const token = localStorage.getItem('kliv_token');
+      
+      console.log('Header - Auth check:', {
+        hasUser: !!currentUser,
+        userUuid: currentUser?.userUuid,
+        email: currentUser?.email,
+        hasToken: !!token,
+        tokenLength: token?.length
+      });
+      
       setUser(currentUser);
     } catch (error) {
-      console.log('Not authenticated');
+      console.log('Not authenticated:', error);
     }
   };
 
   const handleAuthSuccess = (authUser: any) => {
+    console.log('Header - Auth success:', {
+      userUuid: authUser?.userUuid,
+      email: authUser?.email
+    });
+    
+    // Verify token was saved
+    const token = localStorage.getItem('kliv_token');
+    console.log('Header - Token saved:', !!token);
+    
     setUser(authUser);
+    
+    // Reload auth state from storage to ensure consistency
+    setTimeout(() => {
+      checkAuth();
+    }, 100);
   };
 
   const handleSignOut = async () => {
@@ -58,7 +82,7 @@ const Header = () => {
                 <div className="flex items-center gap-1 sm:gap-2 flex-wrap justify-end">
                   <User className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 flex-shrink-0" />
                   <span className="text-xs sm:text-sm text-gray-700 truncate max-w-[100px] sm:max-w-[150px]">
-                    {user.firstName || user.email?.split('@')[0]}
+                    {user.name || user.email?.split('@')[0]}
                   </span>
                   <Button variant="ghost" size="sm" className="h-8 text-xs px-2 sm:px-3" onClick={() => navigate('/profile')}>
                     <span className="hidden sm:inline">プロフィール</span>

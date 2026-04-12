@@ -31,12 +31,18 @@ export default function ForumTopicForm({ onSuccess }: ForumTopicFormProps) {
 
     // 認証チェック
     const user = await auth.getUser();
-    console.log('ForumTopicForm - Current user:', user);
-    console.log('ForumTopicForm - User UUID:', user?.userUuid);
+    const token = localStorage.getItem('kliv_token');
     
-    if (!user || !user.userUuid) {
-      console.error('ForumTopicForm - No authenticated user found');
-      toast.error('ログインしていません。再度ログインしてください。');
+    console.log('ForumTopicForm - Auth check:', {
+      hasUser: !!user,
+      userUuid: user?.userUuid,
+      hasToken: !!token,
+      tokenLength: token?.length
+    });
+    
+    if (!user || !user.userUuid || !token) {
+      console.error('ForumTopicForm - No authenticated user or token found');
+      toast.error('ログインしていません。右上の「ログイン」ボタンからログインしてください。');
       return;
     }
 
@@ -57,10 +63,6 @@ export default function ForumTopicForm({ onSuccess }: ForumTopicFormProps) {
       onSuccess?.();
     } catch (error) {
       console.error('Failed to create forum topic:', error);
-      console.error('Error details:', {
-        message: error?.message,
-        stack: error?.stack
-      });
       toast.error(error?.message || '作成に失敗しました。再度ログインしてください。');
     } finally {
       setIsSubmitting(false);

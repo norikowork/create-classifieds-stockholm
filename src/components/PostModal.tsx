@@ -455,13 +455,19 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
     try {
       // Verify authentication status before submitting
       const currentUser = await auth.getUser();
-      console.log('🔥 Current authenticated user:', currentUser);
-      console.log('🔥 User UUID:', currentUser?.userUuid);
-      console.log('🔥 Editing post _created_by:', editingPost?._created_by);
+      const token = localStorage.getItem('kliv_token');
       
-      if (!currentUser || !currentUser.userUuid) {
-        console.error('PostModal - No authenticated user found');
-        throw new Error('ログインしていません。ページを更新して再度ログインしてください。');
+      console.log('PostModal - Auth check:', {
+        hasUser: !!currentUser,
+        userUuid: currentUser?.userUuid,
+        hasToken: !!token,
+        tokenLength: token?.length,
+        editingPostId: editingPost?._row_id
+      });
+      
+      if (!currentUser || !currentUser.userUuid || !token) {
+        console.error('PostModal - No authenticated user or token found');
+        throw new Error('ログインしていません。右上の「ログイン」ボタンからログインしてください。');
       }
       
       // Verify ownership before updating
