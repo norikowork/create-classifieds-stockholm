@@ -554,7 +554,7 @@ const Index = () => {
               variant={selectedCategory === '' ? 'default' : 'outline'}
               size="sm"
               onClick={() => handleCategoryChange('')}
-              className={selectedCategory === '' ? 'text-white' : ''}
+              className={selectedCategory === '' ? 'text-white border-2' : 'border-2 bg-white hover:bg-gray-50'}
             >
               全て
             </Button>
@@ -566,10 +566,11 @@ const Index = () => {
                   variant={selectedCategory === category.uuid ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => handleCategoryChange(category.uuid)}
-                  className={selectedCategory === category.uuid ? 'text-white' : ''}
+                  className={selectedCategory === category.uuid ? 'text-white border-2' : 'border-2 bg-white hover:bg-gray-50'}
                   style={{
                     backgroundColor: selectedCategory === category.uuid ? category.color : undefined,
-                    borderColor: selectedCategory !== category.uuid ? category.color : undefined
+                    borderColor: category.color,
+                    borderWidth: '2px'
                   }}
                 >
                   <IconComponent className="w-4 h-4 mr-1" />
