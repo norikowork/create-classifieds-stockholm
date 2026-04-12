@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import db from '@/lib/shared/kliv-database';
 import content from '@/lib/shared/kliv-content';
+import auth from '@/lib/shared/kliv-auth';
 import { useToast } from '@/hooks/use-toast';
 import { ShoppingBag, Search, Briefcase, User, Trash2, Package, MapPin, Mail, Phone, Image as ImageIcon, X } from 'lucide-react';
 
@@ -452,6 +453,16 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
     setError('');
 
     try {
+      // Verify authentication status before submitting
+      const currentUser = await auth.getUser();
+      console.log('🔥 Current authenticated user:', currentUser);
+      console.log('🔥 User UUID:', currentUser?.userUuid);
+      console.log('🔥 Editing post _created_by:', editingPost?._created_by);
+      
+      if (!currentUser?.userUuid) {
+        throw new Error('ログインしてください。セッションが切れている可能性があります。ページを更新して再度ログインしてください。');
+      }
+
       console.log('FormData before cleanup:', formData);
       console.log('🔥 imageUrls before save:', imageUrls);
       console.log('🔥 typeof imageUrls:', typeof imageUrls);
@@ -468,6 +479,11 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
       console.log('PostData to send:', postData);
 
       if (editingPost) {
+        // Verify ownership before updating
+        if (editingPost._created_by !== currentUser.userUuid && !isAdmin) {
+          throw new Error('この投稿を編集する権限がありません。自分の投稿のみ編集できます。');
+        }
+        console.log('🔥 Ownership verified, updating post...');
         await db.update('posts', { _row_id: `eq.${editingPost._row_id}` }, postData);
         toast({ title: "投稿を更新しました" });
       } else {
@@ -479,8 +495,20 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
       onClose();
       resetForm();
     } catch (err) {
-      console.error('Post creation error:', err);
-      setError(editingPost ? '投稿の更新に失敗しました' : '投稿の作成に失敗しました');
+      console.error('Post operation error:', err);
+      console.error('Error details:', {
+        message: err?.message,
+        stack: err?.stack,
+        response: err?.response,
+        status: err?.status
+      });
+      const errorMsg = err?.message || (editingPost ? '投稿の更新に失敗しました' : '投稿の作成に失敗しました');
+      setError(errorMsg);
+      toast({
+        title: editingPost ? "更新エラー" : "作成エラー",
+        description: errorMsg,
+        variant: "destructive"
+      });
     } finally {
       setIsSubmitting(false);
     }
