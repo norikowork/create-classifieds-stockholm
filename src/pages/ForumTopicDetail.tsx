@@ -8,6 +8,8 @@ import { Label } from '@/components/ui/label';
 import { ArrowLeft, MessageSquare, Clock, User, Reply, Loader2, Send, Trash2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ja } from 'date-fns/locale';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 import db from '@/lib/shared/kliv-database.js';
 import auth from '@/lib/shared/kliv-auth.js';
 import { toast } from 'sonner';
@@ -150,36 +152,46 @@ export default function ForumTopicDetail() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="container mx-auto px-4">
-          <div className="text-center">
-            <p className="text-gray-500">読み込み中...</p>
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <div className="flex-1 bg-gray-50 py-8">
+          <div className="container mx-auto px-4">
+            <div className="text-center">
+              <p className="text-gray-500">読み込み中...</p>
+            </div>
           </div>
         </div>
+        <Footer />
       </div>
     );
   }
 
   if (!topic) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="container mx-auto px-4">
-          <Card>
-            <CardContent className="py-12 text-center text-gray-500">
-              <p>トピックが見つかりません</p>
-              <Link to="/forum">
-                <Button className="mt-4">掲示板に戻る</Button>
-              </Link>
-            </CardContent>
-          </Card>
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <div className="flex-1 bg-gray-50 py-8">
+          <div className="container mx-auto px-4">
+            <Card>
+              <CardContent className="py-12 text-center text-gray-500">
+                <p>トピックが見つかりません</p>
+                <Link to="/forum">
+                  <Button className="mt-4">掲示板に戻る</Button>
+                </Link>
+              </CardContent>
+            </Card>
+          </div>
         </div>
+        <Footer />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="container mx-auto px-4 max-w-4xl">
+    <div className="min-h-screen flex flex-col">
+      <Header />
+      <div className="flex-1 bg-gray-50 py-8">
+        <div className="container mx-auto px-4 max-w-4xl">
         {/* Back Button */}
         <Link to="/forum">
           <Button variant="ghost" className="mb-4">
@@ -321,7 +333,9 @@ export default function ForumTopicDetail() {
             ))
           )}
         </div>
+        </div>
       </div>
+      <Footer />
     </div>
   );
 }

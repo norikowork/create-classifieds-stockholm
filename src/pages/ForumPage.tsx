@@ -13,6 +13,8 @@ import auth from '@/lib/shared/kliv-auth.js';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { ja } from 'date-fns/locale';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 
 interface ForumTopic {
   _row_id: number;
@@ -138,19 +140,25 @@ export default function ForumPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="container mx-auto px-4">
-          <div className="text-center">
-            <p className="text-gray-500">読み込み中...</p>
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <div className="flex-1 bg-gray-50 py-8">
+          <div className="container mx-auto px-4">
+            <div className="text-center">
+              <p className="text-gray-500">読み込み中...</p>
+            </div>
           </div>
         </div>
+        <Footer />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="container mx-auto px-4">
+    <div className="min-h-screen flex flex-col">
+      <Header />
+      <div className="flex-1 bg-gray-50 py-8">
+        <div className="container mx-auto px-4">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">掲示板</h1>
           <p className="text-gray-600">
@@ -309,7 +317,9 @@ export default function ForumPage() {
             ))
           )}
         </div>
+        </div>
       </div>
+      <Footer />
     </div>
   );
 }
