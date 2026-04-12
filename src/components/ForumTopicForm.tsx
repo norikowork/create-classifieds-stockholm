@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { MessageSquare, Loader2 } from 'lucide-react';
 import { FORUM_CATEGORIES } from '@/constants/forumCategories';
 import db from '@/lib/shared/kliv-database.js';
+import auth from '@/lib/shared/kliv-auth.js';
 import { toast } from 'sonner';
 
 interface ForumTopicFormProps {
@@ -25,6 +26,13 @@ export default function ForumTopicForm({ onSuccess }: ForumTopicFormProps) {
     
     if (!title.trim() || !body.trim() || !category) {
       toast.error('すべての項目を入力してください');
+      return;
+    }
+
+    // 認証チェック
+    const user = await auth.getUser();
+    if (!user) {
+      toast.error('トピックを作成するにはログインしてください');
       return;
     }
 
