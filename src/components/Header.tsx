@@ -6,9 +6,9 @@ import { useState, useEffect } from 'react';
 import { AuthModal } from '@/components/AuthModal';
 
 const Header = () => {
+  const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const navigate = useNavigate();
 
   useEffect(() => {
     checkAuth();
