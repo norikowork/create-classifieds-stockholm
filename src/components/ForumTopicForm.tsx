@@ -31,18 +31,24 @@ export default function ForumTopicForm({ onSuccess }: ForumTopicFormProps) {
 
     // 認証チェック
     const user = await auth.getUser();
-    if (!user) {
-      toast.error('トピックを作成するにはログインしてください');
+    console.log('ForumTopicForm - Current user:', user);
+    console.log('ForumTopicForm - User UUID:', user?.userUuid);
+    
+    if (!user || !user.userUuid) {
+      console.error('ForumTopicForm - No authenticated user found');
+      toast.error('ログインしていません。再度ログインしてください。');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      await db.insert('forum_topics', {
+      console.log('ForumTopicForm - Creating topic with user:', user.userUuid);
+      const result = await db.insert('forum_topics', {
         title: title.trim(),
         body: body.trim(),
         category,
       });
+      console.log('ForumTopicForm - Topic created successfully:', result);
       
       toast.success('トピックを作成しました！');
       setTitle('');
@@ -51,7 +57,11 @@ export default function ForumTopicForm({ onSuccess }: ForumTopicFormProps) {
       onSuccess?.();
     } catch (error) {
       console.error('Failed to create forum topic:', error);
-      toast.error('作成に失敗しました。もう一度お試しください。');
+      console.error('Error details:', {
+        message: error?.message,
+        stack: error?.stack
+      });
+      toast.error(error?.message || '作成に失敗しました。再度ログインしてください。');
     } finally {
       setIsSubmitting(false);
     }

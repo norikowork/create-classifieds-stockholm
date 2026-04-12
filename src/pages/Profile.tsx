@@ -135,28 +135,40 @@ const Profile = () => {
 
   const handleSaveProfile = async () => {
     try {
+      console.log('💾 Profile - Saving profile data:', editForm);
       const now = Math.floor(Date.now() / 1000);
-      
+
       if (userProfile) {
-        await db.update('user_profiles', 
+        console.log('💾 Profile - Updating existing profile');
+        await db.update('user_profiles',
           { user_uuid: `eq.${user.userUuid}` },
-          { 
+          {
             ...editForm,
             last_active: now,
             _updated_at: now
           }
         );
       } else {
+        console.log('💾 Profile - Creating new profile');
         await db.insert('user_profiles', {
           user_uuid: user.userUuid,
           ...editForm,
           last_active: now
         });
       }
-      
-      setUserProfile(prev => ({ ...prev, ...editForm }));
+
+      // データベースから最新のプロフィール情報を再取得
+      const updatedProfiles = await db.query('user_profiles', {
+        user_uuid: `eq.${user.userUuid}`
+      });
+
+      if (updatedProfiles.length > 0) {
+        console.log('💾 Profile - Updated profile loaded:', updatedProfiles[0]);
+        setUserProfile(updatedProfiles[0]);
+      }
+
       setIsEditing(false);
-      
+
       toast({
         title: "プロフィール更新",
         description: "プロフィールが更新されました",
@@ -173,11 +185,17 @@ const Profile = () => {
 
   const handleProfilePhotoUpload = async (event) => {
     const file = event.target.files[0];
-    if (!file) return;
+    if (!file) {
+      console.log('📤 Profile - No file selected');
+      return;
+    }
+
+    console.log('📤 Profile - File selected:', file.name, 'size:', file.size, 'type:', file.type);
 
     // ファイルサイズチェック（1MB = 1,048,576 bytes）
     const maxSize = 1 * 1024 * 1024;
     if (file.size > maxSize) {
+      console.log('📤 Profile - File too large:', file.size);
       toast({
         title: "ファイルサイズ超過",
         description: "プロフィール写真は1MBまでです",
@@ -189,6 +207,7 @@ const Profile = () => {
 
     // 画像ファイルチェック
     if (!file.type.startsWith('image/')) {
+      console.log('📤 Profile - Not an image file:', file.type);
       toast({
         title: "ファイル形式エラー",
         description: "画像ファイルを選択してください",
@@ -200,29 +219,28 @@ const Profile = () => {
 
     try {
       setProfilePhotoUploading(true);
-      console.log('📤 Profile - Uploading photo file:', file.name, 'size:', file.size);
-      
+      console.log('📤 Profile - Starting upload...');
+
       // プロフィール写真をアップロード
       const uploadPath = '/content/profile-photos/';
+      console.log('📤 Profile - Upload path:', uploadPath);
       const result = await content.uploadFile(file, uploadPath);
-      
+
       console.log('📤 Profile - Upload result:', result);
       console.log('📤 Profile - Upload result keys:', Object.keys(result));
       console.log('📤 Profile - Upload result contentUrl:', result.contentUrl);
-      console.log('📤 Profile - Upload result url:', result.url);
-      console.log('📤 Profile - Upload result fileUrl:', result.fileUrl);
-      
-      // 正しいURLを取得 - pathプロパティからURLを構築
-      const photoUrl = result.contentUrl || result.url || result.fileUrl || (result.path ? result.path : null);
+
+      // 正しいURLを取得 - contentUrl プロパティを使用
+      const photoUrl = result.contentUrl || result.url || result.fileUrl;
       console.log('📤 Profile - Using photo URL:', photoUrl);
-      
+
       // プロフィールを更新
       const now = Math.floor(Date.now() / 1000);
       if (userProfile) {
         console.log('📤 Profile - Updating existing profile with photo URL:', photoUrl);
-        await db.update('user_profiles', 
+        await db.update('user_profiles',
           { user_uuid: `eq.${user.userUuid}` },
-          { 
+          {
             profile_photo_url: photoUrl,
             last_active: now,
             _updated_at: now
@@ -237,18 +255,18 @@ const Profile = () => {
           last_active: now
         });
       }
-      
+
       // データベースから最新のプロフィール情報を再取得
       console.log('📤 Profile - Refreshing profile data from database');
-      const updatedProfiles = await db.query('user_profiles', { 
-        user_uuid: `eq.${user.userUuid}` 
+      const updatedProfiles = await db.query('user_profiles', {
+        user_uuid: `eq.${user.userUuid}`
       });
-      
+
       if (updatedProfiles.length > 0) {
         console.log('📤 Profile - Setting updated profile:', updatedProfiles[0]);
         setUserProfile(updatedProfiles[0]);
       }
-      
+
       toast({
         title: "プロフィール写真更新",
         description: "プロフィール写真が更新されました",
@@ -257,7 +275,7 @@ const Profile = () => {
       console.error('Error uploading profile photo:', error);
       toast({
         title: "エラー",
-        description: "プロフィール写真のアップロードに失敗しました",
+        description: "プロフィール写真のアップロードに失敗しました: " + error.message,
         variant: "destructive"
       });
     } finally {
@@ -273,21 +291,44 @@ const Profile = () => {
 
     try {
       const now = Math.floor(Date.now() / 1000);
-      
-      await db.update('user_profiles', 
+
+      // ファイルシステムから画像ファイルを削除
+      if (userProfile?.profile_photo_url) {
+        try {
+          // URLからファイルパスを抽出
+          const photoUrl = userProfile.profile_photo_url;
+          console.log('🗑️ Profile - Attempting to delete photo file:', photoUrl);
+
+          // contentUrlからファイルパスを取得
+          // ファイルパスは通常 /content/profile-photos/filename の形式
+          const urlParts = photoUrl.split('/content/');
+          if (urlParts.length > 1) {
+            const filePath = '/content/' + urlParts[1];
+            console.log('🗑️ Profile - Deleting file at path:', filePath);
+            await content.deleteFile(filePath);
+            console.log('🗑️ Profile - File deleted successfully');
+          }
+        } catch (fileError) {
+          console.warn('🗑️ Profile - Could not delete file (may not exist):', fileError);
+          // ファイルの削除に失敗しても続行（データベース参照は削除する）
+        }
+      }
+
+      // データベースの参照を削除
+      await db.update('user_profiles',
         { user_uuid: `eq.${user.userUuid}` },
-        { 
+        {
           profile_photo_url: null,
           last_active: now,
           _updated_at: now
         }
       );
-      
-      setUserProfile(prev => ({ 
-        ...prev, 
-        profile_photo_url: null 
+
+      setUserProfile(prev => ({
+        ...prev,
+        profile_photo_url: null
       }));
-      
+
       toast({
         title: "プロフィール写真削除",
         description: "プロフィール写真が削除されました",
@@ -472,7 +513,7 @@ const Profile = () => {
                     size="sm"
                     onClick={() => setIsEditing(!isEditing)}
                   >
-                    {isEditing ? <Phone className="w-4 h-4" /> : <Edit className="w-4 h-4" />}
+                    {isEditing ? <Edit className="w-4 h-4" /> : <Edit className="w-4 h-4" />}
                     {isEditing ? 'キャンセル' : '編集'}
                   </Button>
                 </div>
@@ -482,26 +523,16 @@ const Profile = () => {
                 <div className="flex flex-col items-center mb-6">
                   <div className="relative">
                     <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-100 mb-4">
-                      {console.log('🖼️ Profile - Render check - userProfile:', userProfile)}
-                      {console.log('🖼️ Profile - Render check - profile_photo_url:', userProfile?.profile_photo_url)}
                       {userProfile?.profile_photo_url ? (
-                        <>
-                          {console.log('🖼️ Profile - Rendering image with URL:', userProfile.profile_photo_url)}
-                          <img 
-                            src={userProfile.profile_photo_url}
-                            alt="プロフィール写真"
-                            className="w-full h-full object-cover"
-                            onLoad={() => console.log('🖼️ Profile - Image loaded successfully')}
-                            onError={(e) => console.log('🖼️ Profile - Image load error:', e)}
-                          />
-                        </>
+                        <img
+                          src={userProfile.profile_photo_url}
+                          alt="プロフィール写真"
+                          className="w-full h-full object-cover"
+                        />
                       ) : (
-                        <>
-                          {console.log('🖼️ Profile - No photo URL, showing placeholder')}
-                          <div className="w-full h-full flex items-center justify-center">
-                            <User className="w-16 h-16 text-gray-400" />
-                          </div>
-                        </>
+                        <div className="w-full h-full flex items-center justify-center">
+                          <User className="w-16 h-16 text-gray-400" />
+                        </div>
                       )}
                     </div>
                     {isEditing && (
@@ -616,7 +647,11 @@ const Profile = () => {
                     </div>
                     <div className="flex space-x-2">
                       <Button type="submit">保存</Button>
-                      <Button type="button" variant="outline" onClick={() => setIsEditing(false)}>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setIsEditing(false)}
+                      >
                         キャンセル
                       </Button>
                     </div>

@@ -459,8 +459,23 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
       console.log('🔥 User UUID:', currentUser?.userUuid);
       console.log('🔥 Editing post _created_by:', editingPost?._created_by);
       
-      if (!currentUser?.userUuid) {
-        throw new Error('ログインしてください。セッションが切れている可能性があります。ページを更新して再度ログインしてください。');
+      if (!currentUser || !currentUser.userUuid) {
+        console.error('PostModal - No authenticated user found');
+        throw new Error('ログインしていません。ページを更新して再度ログインしてください。');
+      }
+      
+      // Verify ownership before updating
+      if (editingPost) {
+        console.log('PostModal - Checking ownership:', {
+          createdBy: editingPost._created_by,
+          currentUser: currentUser.userUuid,
+          isAdmin
+        });
+        
+        if (editingPost._created_by !== currentUser.userUuid && !isAdmin) {
+          console.error('PostModal - Ownership check failed');
+          throw new Error('この投稿を編集する権限がありません。自分の投稿のみ編集できます。');
+        }
       }
 
       console.log('FormData before cleanup:', formData);
