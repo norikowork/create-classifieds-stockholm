@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MessageSquare, Search, Clock, User, Reply } from 'lucide-react';
+import { MessageSquare, Search, Clock, User, Reply, Home, Briefcase, GraduationCap, Car, Heart, Stethoscope, Baby, ShoppingBag, Plane, Calendar, Users, Wrench, DollarSign, FileText, Coffee } from 'lucide-react';
 import ForumTopicForm from '@/components/ForumTopicForm';
 import { FORUM_CATEGORIES } from '@/constants/forumCategories';
 import db from '@/lib/shared/kliv-database.js';
@@ -23,6 +23,24 @@ interface ForumTopic {
   _created_by: string;
 }
 
+// カテゴリ情報とアイコンのマッピング
+const categoryInfo: Record<string, { icon: any; color: string }> = {
+  '生活・習慣': { icon: Home, color: 'bg-blue-500' },
+  'ビザ・移民': { icon: FileText, color: 'bg-purple-500' },
+  '住まい・DIY': { icon: Home, color: 'bg-green-500' },
+  '学校・習い事': { icon: GraduationCap, color: 'bg-indigo-500' },
+  '仕事・転職': { icon: Briefcase, color: 'bg-orange-500' },
+  '交通手段・乗り物': { icon: Car, color: 'bg-red-500' },
+  '美容・健康': { icon: Heart, color: 'bg-pink-500' },
+  '税金・金融・郵便': { icon: DollarSign, color: 'bg-yellow-500' },
+  '医療・福祉': { icon: Stethoscope, color: 'bg-teal-500' },
+  '出産・子育て・教育': { icon: Baby, color: 'bg-rose-500' },
+  '食・買い物': { icon: ShoppingBag, color: 'bg-amber-500' },
+  '旅行・宿泊': { icon: Plane, color: 'bg-cyan-500' },
+  'イベント・サークル': { icon: Calendar, color: 'bg-lime-500' },
+  'その他': { icon: Coffee, color: 'bg-gray-500' },
+};
+
 export default function ForumPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [topics, setTopics] = useState<ForumTopic[]>([]);
@@ -31,6 +49,7 @@ export default function ForumPage() {
   const [showForm, setShowForm] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [replyCounts, setReplyCounts] = useState<Record<number, number>>({});
+  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
 
   // Filter states
   const categoryFilter = searchParams.get('category') || '';
@@ -68,6 +87,13 @@ export default function ForumPage() {
         counts[topic._row_id] = count;
       }
       setReplyCounts(counts);
+
+      // Calculate category counts
+      const catCounts: Record<string, number> = {};
+      FORUM_CATEGORIES.forEach(cat => {
+        catCounts[cat] = data.filter(t => t.category === cat).length;
+      });
+      setCategoryCounts(catCounts);
     } catch (error) {
       console.error('Failed to load topics:', error);
     } finally {
@@ -159,6 +185,43 @@ export default function ForumPage() {
             </Button>
           </div>
         )}
+
+        {/* Categories Grid */}
+        <div className="mb-8">
+          <h2 className="text-xl font-bold mb-4">カテゴリから探す</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+            {FORUM_CATEGORIES.map((category) => {
+              const info = categoryInfo[category];
+              const IconComponent = info?.icon || MessageSquare;
+              const count = categoryCounts[category] || 0;
+              const isActive = categoryFilter === category;
+              
+              return (
+                <button
+                  key={category}
+                  onClick={() => updateFilters({ category: isActive ? '' : category })}
+                  className={`p-4 rounded-lg border-2 transition-all ${
+                    isActive 
+                      ? 'border-blue-500 bg-blue-50 shadow-md' 
+                      : 'border-gray-200 bg-white hover:border-blue-300 hover:shadow-sm'
+                  }`}
+                >
+                  <div className="flex flex-col items-center text-center">
+                    <div className={`p-2 rounded-full ${info?.color || 'bg-gray-500'} text-white mb-2`}>
+                      <IconComponent className="w-5 h-5" />
+                    </div>
+                    <span className="text-xs font-medium text-gray-700 line-clamp-2">
+                      {category}
+                    </span>
+                    <span className="text-xs text-gray-500 mt-1">
+                      {count}件
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
         {/* Filters */}
         <Card className="mb-6">
