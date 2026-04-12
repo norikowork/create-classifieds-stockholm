@@ -48,6 +48,36 @@ const Footer = () => {
                 </Link>
               </li>
               <li>
+                <Link to="/" className="text-gray-300 hover:text-white transition-colors">
+                  全て
+                </Link>
+              </li>
+              <li>
+                <a href="/?category=cat-for-sale" className="text-gray-300 hover:text-white transition-colors">
+                  売ります
+                </a>
+              </li>
+              <li>
+                <a href="/?category=cat-job-seeking" className="text-gray-300 hover:text-white transition-colors">
+                  仕事探し
+                </a>
+              </li>
+              <li>
+                <a href="/?category=cat-housing" className="text-gray-300 hover:text-white transition-colors">
+                  住居
+                </a>
+              </li>
+              <li>
+                <a href="/?category=cat-events" className="text-gray-300 hover:text-white transition-colors">
+                  イベントお知らせ
+                </a>
+              </li>
+              <li>
+                <a href="/?category=cat-services" className="text-gray-300 hover:text-white transition-colors">
+                  サービス
+                </a>
+              </li>
+              <li>
                 <Link to="/forum" className="text-gray-300 hover:text-white transition-colors">
                   掲示板
                 </Link>
