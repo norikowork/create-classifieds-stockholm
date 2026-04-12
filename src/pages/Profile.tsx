@@ -692,7 +692,7 @@ const Profile = () => {
                             <Badge variant="secondary" className="mr-2">
                               {categoryIcons[post.category_uuid]} {getCategoryName(post.category_uuid)}
                             </Badge>
-                            <Badge variant="outline" className="mr-2">
+                            <Badge variant="secondary" className="mr-2 text-gray-600">
                               {postTypeLabels[post.post_type]}
                             </Badge>
                             <Badge className={getStatusColor(post.status)}>
@@ -777,7 +777,7 @@ const Profile = () => {
                     <Badge variant="secondary">
                       {categoryIcons[selectedPost.category_uuid]} {getCategoryName(selectedPost.category_uuid)}
                     </Badge>
-                    <Badge variant="outline">
+                    <Badge variant="secondary" className="text-gray-600">
                       {postTypeLabels[selectedPost.post_type]}
                     </Badge>
                     <Badge className={getStatusColor(selectedPost.status)}>

@@ -580,7 +580,7 @@ const PostDetail = () => {
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge
                         variant="secondary"
-                        className="bg-blue-100 text-blue-800"
+                        className="text-gray-600"
                       >
                         {post.post_type === 'event' ? 'イベント' : postTypeLabels[post.post_type]}
                       </Badge>

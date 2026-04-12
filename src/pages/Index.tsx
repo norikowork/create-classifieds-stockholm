@@ -653,7 +653,7 @@ const Index = () => {
                       <CardDescription className="mt-1">
                         <Badge 
                           variant="secondary" 
-                          style={{ backgroundColor: getCategoryColor(post.category_uuid) + '20', color: getCategoryColor(post.category_uuid) }}
+                          className="text-gray-600"
                         >
                           {postTypeLabels[post.post_type]}
                         </Badge>
@@ -807,8 +807,7 @@ const Index = () => {
                         <h3 className="text-base font-semibold truncate">{post.title}</h3>
                         <Badge
                           variant="secondary"
-                          className="flex-shrink-0 text-xs"
-                          style={{ backgroundColor: getCategoryColor(post.category_uuid) + '20', color: getCategoryColor(post.category_uuid) }}
+                          className="flex-shrink-0 text-xs text-gray-600"
                         >
                           {postTypeLabels[post.post_type]}
                         </Badge>
