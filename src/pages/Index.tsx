@@ -425,7 +425,13 @@ const Index = () => {
 
   const formatDate = (timestamp) => {
     const date = new Date(timestamp * 1000);
-    return date.toLocaleDateString('ja-JP');
+    return date.toLocaleString('ja-JP', {
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   const getMonthOptions = () => {

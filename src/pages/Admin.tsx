@@ -347,7 +347,14 @@ const Admin = () => {
 
   const formatDate = (timestamp) => {
     if (!timestamp) return '不明';
-    return new Date(timestamp * 1000).toLocaleDateString('ja-JP');
+    const date = new Date(timestamp * 1000);
+    return date.toLocaleString('ja-JP', {
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   const getCategoryName = (categoryUuid) => {
