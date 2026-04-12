@@ -532,16 +532,6 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
                       <span className="text-xs text-gray-500 mt-1">Paid</span>
                     </Label>
                   </div>
-                  <div className="flex-1">
-                    <RadioGroupItem value="donation" id="donation" className="peer sr-only" />
-                    <Label 
-                      htmlFor="donation" 
-                      className="flex flex-col items-center justify-center p-4 border-2 rounded-lg cursor-pointer transition-all peer-data-[state=checked]:border-blue-500 peer-data-[state=checked]:bg-blue-50 hover:border-gray-300"
-                    >
-                      <span className="font-medium">寄付</span>
-                      <span className="text-xs text-gray-500 mt-1">Donation</span>
-                    </Label>
-                  </div>
                 </RadioGroup>
               </CardContent>
             </Card>
@@ -1011,7 +1001,7 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
                       id="price"
                       value={formData.price}
                       onChange={(e) => handleInputChange('price', e.target.value)}
-                      placeholder="例：500 SEK、寄付歓迎など"
+                      placeholder="例：500 SEK"
                     />
                   </div>
                 )}
