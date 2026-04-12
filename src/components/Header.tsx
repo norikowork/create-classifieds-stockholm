@@ -91,7 +91,7 @@ const Header = () => {
       <AuthModal 
         isOpen={isAuthModalOpen} 
         onClose={() => setIsAuthModalOpen(false)} 
-        onSuccess={handleAuthSuccess}
+        onAuthSuccess={handleAuthSuccess}
       />
     </>
   );
