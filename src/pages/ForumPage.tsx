@@ -218,12 +218,14 @@ export default function ForumPage() {
                     <div className={`p-1.5 rounded-full ${info?.color || 'bg-gray-500'} text-white mb-1.5`}>
                       <IconComponent className="w-4 h-4" />
                     </div>
-                    <span className="text-xs font-medium text-gray-700 line-clamp-2">
-                      {category}
-                    </span>
-                    <span className="text-xs text-gray-500 mt-0.5">
-                      {count}件
-                    </span>
+                    <div className="flex items-center gap-1 text-xs">
+                      <span className="font-medium text-gray-700 line-clamp-1">
+                        {category}
+                      </span>
+                      <span className="text-gray-500 whitespace-nowrap">
+                        ({count})
+                      </span>
+                    </div>
                   </div>
                 </button>
               );
