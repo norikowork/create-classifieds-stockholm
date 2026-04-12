@@ -197,7 +197,7 @@ export default function ForumPage() {
         {/* Categories Grid */}
         <div className="mb-8">
           <h2 className="text-xl font-bold mb-4">カテゴリから探す</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
             {FORUM_CATEGORIES.map((category) => {
               const info = categoryInfo[category];
               const IconComponent = info?.icon || MessageSquare;
@@ -208,20 +208,20 @@ export default function ForumPage() {
                 <button
                   key={category}
                   onClick={() => updateFilters({ category: isActive ? '' : category })}
-                  className={`p-4 rounded-lg border-2 transition-all ${
+                  className={`p-2.5 rounded-lg border-2 transition-all ${
                     isActive 
                       ? 'border-blue-500 bg-blue-50 shadow-md' 
                       : 'border-gray-200 bg-white hover:border-blue-300 hover:shadow-sm'
                   }`}
                 >
                   <div className="flex flex-col items-center text-center">
-                    <div className={`p-2 rounded-full ${info?.color || 'bg-gray-500'} text-white mb-2`}>
-                      <IconComponent className="w-5 h-5" />
+                    <div className={`p-1.5 rounded-full ${info?.color || 'bg-gray-500'} text-white mb-1.5`}>
+                      <IconComponent className="w-4 h-4" />
                     </div>
                     <span className="text-xs font-medium text-gray-700 line-clamp-2">
                       {category}
                     </span>
-                    <span className="text-xs text-gray-500 mt-1">
+                    <span className="text-xs text-gray-500 mt-0.5">
                       {count}件
                     </span>
                   </div>
