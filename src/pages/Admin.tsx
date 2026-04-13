@@ -636,29 +636,64 @@ const Admin = () => {
                 <div className="space-y-4">
                   {filteredUsers().map((userItem) => (
                     <div key={userItem.user_uuid} className="border rounded-lg p-4">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <h3 className="font-semibold">
-                            {userItem.first_name} {userItem.last_name}
-                          </h3>
-                          <p className="text-gray-600">{userItem.email}</p>
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3">
+                            <h3 className="font-semibold">
+                              {userItem.first_name} {userItem.last_name}
+                            </h3>
+                            {userItem.user_metadata?.blocked && (
+                              <Badge variant="destructive">
+                                <Ban className="h-3 w-3 mr-1" />
+                                ブロック済み
+                              </Badge>
+                            )}
+                            {userItem.email === user?.email && (
+                              <Badge variant="outline" className="bg-blue-50">
+                                <Shield className="h-3 w-3 mr-1" />
+                                管理者（あなた）
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-gray-600 text-sm">{userItem.email}</p>
                           <p className="text-xs text-gray-500">
                             登録日: {formatDate(userItem._created_at)}
                           </p>
-                          {userItem.user_metadata?.blocked && (
-                            <Badge variant="destructive" className="mt-2">
-                              ブロック済み
-                            </Badge>
-                          )}
+                          <div className="mt-2 text-sm text-gray-600">
+                            投稿数: {allPosts.filter(p => p._created_by === userItem.user_uuid).length}
+                          </div>
                         </div>
                         <div className="flex space-x-2">
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => handleDeleteUser(userItem.user_uuid)}
-                          >
-                            <Trash className="h-4 w-4" />
-                          </Button>
+                          {userItem.email !== user?.email && (
+                            <>
+                              {userItem.user_metadata?.blocked ? (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleUnblockUser(userItem.user_uuid)}
+                                >
+                                  <Check className="h-4 w-4 mr-1" />
+                                  ブロック解除
+                                </Button>
+                              ) : (
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  onClick={() => handleBlockUser(userItem.user_uuid)}
+                                >
+                                  <Ban className="h-4 w-4 mr-1" />
+                                  ブロック
+                                </Button>
+                              )}
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => handleDeleteUser(userItem.user_uuid)}
+                              >
+                                <Trash className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
