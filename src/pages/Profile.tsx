@@ -204,7 +204,7 @@ const Profile = () => {
       setProfilePhotoUploading(true);
 
       const result = await content.uploadFile(file, '/content/profile-photos/');
-      const photoUrl = result.contentUrl || result.url || result.fileUrl;
+      const photoUrl = result.path || result.contentUrl || result.url || result.fileUrl;
 
       // プロフィールを更新
       const now = Math.floor(Date.now() / 1000);

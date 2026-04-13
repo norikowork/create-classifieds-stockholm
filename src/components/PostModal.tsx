@@ -13,6 +13,8 @@ import content from '@/lib/shared/kliv-content';
 import auth from '@/lib/shared/kliv-auth';
 import { useToast } from '@/hooks/use-toast';
 import { ShoppingBag, Search, Briefcase, User, Trash2, Package, MapPin, Mail, Phone, Image as ImageIcon, X } from 'lucide-react';
+import { format } from 'date-fns';
+import { ja } from 'date-fns/locale';
 
 interface PostModalProps {
   isOpen: boolean;
@@ -116,8 +118,12 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
         service_fee: editingPost.service_fee || '',
         service_area: editingPost.service_area || '',
         availability: editingPost.availability || '',
-        // Event fields
-        event_date: editingPost.event_date || '',
+        // Event fields - convert unix timestamp to datetime-local format
+        event_date: editingPost.event_date
+          ? (typeof editingPost.event_date === 'number'
+            ? new Date(editingPost.event_date * 1000).toISOString().slice(0, 16)
+            : editingPost.event_date)
+          : '',
         event_location: editingPost.event_location || '',
         event_fee: editingPost.event_fee || '',
         // Contact fields
@@ -368,12 +374,19 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
       }
 
       const { location_id, ...cleanFormData } = formData;
-      const postData = {
+      const postData: any = {
         ...cleanFormData,
-        images: imageUrls,
+        images: JSON.stringify(imageUrls),
         location_uuid: formData.location_uuid,
         _updated_at: Math.floor(Date.now() / 1000)
       };
+
+      // For events, compute event_date as unix timestamp and event_date_readable
+      if (formData.category_uuid === 'cat-events' && formData.event_date) {
+        const eventDate = new Date(formData.event_date);
+        postData.event_date = Math.floor(eventDate.getTime() / 1000);
+        postData.event_date_readable = format(eventDate, 'yyyy年MM月dd日 (EEEE)', { locale: ja });
+      }
 
       if (editingPost) {
         console.log('Updating post:', editingPost._row_id, postData);
@@ -1054,7 +1067,7 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
                       type="file"
                       multiple
                       accept="image/*"
-                      onChange={handleImageUpload}
+                      onChange={handleFileInputChange}
                       className="hidden"
                     />
                     <Label 

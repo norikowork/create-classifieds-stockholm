@@ -38,7 +38,7 @@ const statusLabels = {
   'removed': '削除'
 };
 
-const ADMIN_EMAIL = 'admin@example.com';
+const ADMIN_EMAIL = 'noriko@rational.ventures';
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -79,7 +79,7 @@ const Admin = () => {
         return;
       }
       
-      if (!currentUser.isPrimaryOrg) {
+      if (!currentUser.isPrimaryTeam) {
         navigate('/');
         return;
       }
