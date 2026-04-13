@@ -94,7 +94,7 @@ const Profile = () => {
       // Load user posts
       const posts = await db.query('posts', { 
         _created_by: `eq.${currentUser.userUuid}`,
-        _deleted: 'eq.0'
+        status: 'neq.removed'
       });
       
       // Filter out any invalid posts and parse images
@@ -343,16 +343,20 @@ const Profile = () => {
   };
 
   const handlePostUpdated = async (updatedPost) => {
+    console.log('handlePostUpdated called with:', updatedPost);
     setIsPostModalOpen(false);
     setEditingPost(null);
     
     // Refresh posts from server to ensure data consistency
     try {
       if (user) {
+        console.log('Refreshing posts for user:', user.userUuid);
         const posts = await db.query('posts', { 
           _created_by: `eq.${user.userUuid}`,
-          _deleted: 'eq.0'
+          status: 'neq.removed'
         });
+        
+        console.log('Posts refreshed:', posts.length, 'posts');
         
         // Filter out any invalid posts and parse images
         const validPosts = posts.filter(post => post && post._row_id);
@@ -376,6 +380,7 @@ const Profile = () => {
           return { ...post, images };
         });
         
+        console.log('Setting user posts:', postsWithImages.length, 'posts');
         setUserPosts(postsWithImages.sort((a, b) => b._created_at - a._created_at));
       }
     } catch (error) {

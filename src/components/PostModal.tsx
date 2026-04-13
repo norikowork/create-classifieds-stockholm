@@ -376,16 +376,26 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
       };
 
       if (editingPost) {
+        console.log('Updating post:', editingPost._row_id, postData);
         await db.update('posts', { _row_id: `eq.${editingPost._row_id}` }, postData);
+        console.log('Post updated successfully');
         toast({ title: "投稿を更新しました" });
       } else {
+        console.log('Creating new post:', postData);
         await db.insert('posts', postData);
+        console.log('Post created successfully');
         toast({ title: "投稿を作成しました" });
       }
 
-      onPostCreated();
-      onClose();
+      // Wait a bit for the database to be updated
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      console.log('Calling onPostCreated...');
+      await onPostCreated();
+      console.log('onPostCreated completed');
+      
       resetForm();
+      onClose();
     } catch (err) {
       const errorMsg = err?.message || (editingPost ? '投稿の更新に失敗しました' : '投稿の作成に失敗しました');
       setError(errorMsg);
