@@ -31,30 +31,18 @@ export default function ForumTopicForm({ onSuccess }: ForumTopicFormProps) {
 
     // 認証チェック
     const user = await auth.getUser();
-    const token = localStorage.getItem('kliv_token');
-    
-    console.log('ForumTopicForm - Auth check:', {
-      hasUser: !!user,
-      userUuid: user?.userUuid,
-      hasToken: !!token,
-      tokenLength: token?.length
-    });
-    
-    if (!user || !user.userUuid || !token) {
-      console.error('ForumTopicForm - No authenticated user or token found');
+    if (!user || !user.userUuid) {
       toast.error('ログインしていません。右上の「ログイン」ボタンからログインしてください。');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      console.log('ForumTopicForm - Creating topic with user:', user.userUuid);
-      const result = await db.insert('forum_topics', {
+      await db.insert('forum_topics', {
         title: title.trim(),
         body: body.trim(),
         category,
       });
-      console.log('ForumTopicForm - Topic created successfully:', result);
       
       toast.success('トピックを作成しました！');
       setTitle('');

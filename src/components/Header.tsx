@@ -17,38 +17,14 @@ const Header = () => {
   const checkAuth = async () => {
     try {
       const currentUser = await auth.getUser();
-      const token = localStorage.getItem('kliv_token');
-      
-      console.log('Header - Auth check:', {
-        hasUser: !!currentUser,
-        userUuid: currentUser?.userUuid,
-        email: currentUser?.email,
-        hasToken: !!token,
-        tokenLength: token?.length
-      });
-      
       setUser(currentUser);
     } catch (error) {
-      console.log('Not authenticated:', error);
+      // Not authenticated
     }
   };
 
   const handleAuthSuccess = (authUser: any) => {
-    console.log('Header - Auth success:', {
-      userUuid: authUser?.userUuid,
-      email: authUser?.email
-    });
-    
-    // Verify token was saved
-    const token = localStorage.getItem('kliv_token');
-    console.log('Header - Token saved:', !!token);
-    
     setUser(authUser);
-    
-    // Reload auth state from storage to ensure consistency
-    setTimeout(() => {
-      checkAuth();
-    }, 100);
   };
 
   const handleSignOut = async () => {

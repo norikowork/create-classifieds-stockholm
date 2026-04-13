@@ -172,7 +172,7 @@ const Index = () => {
       const currentUser = await auth.getUser();
       setUser(currentUser);
     } catch (error) {
-      console.log('Not authenticated');
+      // Not authenticated
     }
   };
 

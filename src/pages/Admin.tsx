@@ -283,11 +283,8 @@ const Admin = () => {
   };
 
   const handleDeletePost = async (postId) => {
-    console.log('🔥 Deleting post with ID:', postId);
     try {
-      console.log('🔥 Calling db.delete...');
-      const result = await db.delete('posts', { _row_id: `eq.${postId}` });
-      console.log('🔥 Delete result:', result);
+      await db.delete('posts', { _row_id: `eq.${postId}` });
       
       toast({
         title: "投稿削除完了",
@@ -295,10 +292,8 @@ const Admin = () => {
       });
       
       setSelectedPost(null);
-      console.log('🔥 Reloading admin data...');
       loadAdminData();
     } catch (error) {
-      console.error('🔥 Error deleting post:', error);
       toast({
         title: "エラー",
         description: "投稿の削除に失敗しました: " + (error?.message || 'Unknown error'),

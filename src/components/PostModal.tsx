@@ -78,39 +78,15 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
   const { toast } = useToast();
 
   const isAdmin = user?.isPrimaryOrg || user?.userMetadata?.is_admin;
-  console.log('PostModal - user:', user);
-  console.log('PostModal - isAdmin:', isAdmin);
-  console.log('PostModal - editingPost:', editingPost);
 
   useEffect(() => {
-    console.log('PostModal render - isOpen:', isOpen, 'isAdmin:', isAdmin, 'editingPost:', editingPost);
     if (isOpen) {
-      console.log('Modal is opening, fetching data...');
       fetchData();
-      
-      // Check if file input exists in DOM after modal opens
-      setTimeout(() => {
-        const adminInput = document.getElementById('admin-images');
-        console.log('🔥🔥🔥 Admin file input in DOM:', !!adminInput);
-        if (adminInput) {
-          console.log('🔥🔥🔥 Admin input element:', adminInput);
-          console.log('🔥🔥🔥 Admin input type:', adminInput.getAttribute('type'));
-          console.log('🔥🔥🔥 Admin input disabled:', adminInput.getAttribute('disabled'));
-        }
-      }, 1000);
     }
   }, [isOpen, user]);
 
   useEffect(() => {
     if (isOpen && editingPost && categories.length > 0 && locations.length > 0) {
-      console.log('Editing post images:', editingPost.images);
-      console.log('Editing post data:', editingPost);
-      console.log('🔥 Available fields:', Object.keys(editingPost));
-      console.log('🔥 category field:', editingPost.category);
-      console.log('🔥 location field:', editingPost.location);
-      console.log('🔥 category_uuid field:', editingPost.category_uuid);
-      console.log('🔥 location_uuid field:', editingPost.location_uuid);
-      
       const newFormData = {
         title: editingPost.title || '',
         description: editingPost.description || '',
@@ -150,23 +126,15 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
         email: editingPost.email || ''
       };
       
-      console.log('🔥 New formData for editing:', newFormData);
       setFormData(newFormData);
       const parsedImages = editingPost.images ? (typeof editingPost.images === 'string' ? JSON.parse(editingPost.images) : editingPost.images) : [];
-      console.log('Parsed images for editing:', parsedImages);
       setImageUrls(parsedImages);
     } else if (isOpen && !editingPost) {
-      console.log('New post mode, resetting form');
       resetForm();
     }
   }, [isOpen, editingPost, categories, locations]);
 
-  useEffect(() => {
-    console.log('🔥 imageUrls changed:', imageUrls);
-  }, [imageUrls]);
-
   const resetForm = () => {
-    console.log('Reset form called');
     setFormData({
       title: '',
       description: '',
@@ -216,9 +184,6 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
         db.query('locations', { _deleted: 'eq.0' }),
         db.query('subcategories', { _deleted: 'eq.0' })
       ]);
-      console.log('Categories fetched:', categoriesResult);
-      console.log('Locations fetched:', locationsResult);
-      console.log('Subcategories fetched:', subcategoriesResult);
       setCategories(categoriesResult || []);
       setSubcategories(subcategoriesResult || []);
       // Sort locations: English name alphabetically, but put "Other" and "Övriga" at the end
@@ -256,22 +221,14 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
   };
 
   const handleImageUpload = async (files: FileList | null) => {
-    console.log('🔥🔥🔥 handleImageUpload called with files!');
-    console.log('🔥🔥🔥 Files:', files);
-    
-    if (!files) {
-      console.log('🔥🔥🔥 No files provided');
-      return;
-    }
+    if (!files) return;
 
     const fileArray = Array.from(files);
-    console.log('🔥🔥🔥 Files selected:', fileArray.length, 'files:', fileArray);
     
     // 1ファイル1MBのサイズ制限チェック
     const maxSizeBytes = 1 * 1024 * 1024; // 1MB
     const validFiles = fileArray.filter(file => {
       if (file.size > maxSizeBytes) {
-        console.log('🔥🔥🔥 File too large:', file.name, 'size:', file.size, 'limit:', maxSizeBytes);
         toast({
           title: "ファイルサイズ超過",
           description: `${file.name}は ${(file.size / (1024 * 1024)).toFixed(2)}MB です。1ファイル1MBまでにしてください。`,
@@ -282,10 +239,7 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
       return true;
     });
     
-    if (validFiles.length === 0) {
-      console.log('🔥🔥🔥 No valid files after size check');
-      return;
-    }
+    if (validFiles.length === 0) return;
     
     if (validFiles.length < fileArray.length) {
       toast({
@@ -296,25 +250,13 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
     
     const remainingSlots = 3 - imageUrls.length;
     const filesToUpload = validFiles.slice(0, remainingSlots);
-    console.log('🔥🔥🔥 Files to upload:', filesToUpload.length, 'current URLs:', imageUrls);
-
-    if (filesToUpload.length === 0) {
-      console.log('🔥🔥🔥 No files to upload, exiting');
-      return;
-    }
+    if (filesToUpload.length === 0) return;
 
     const newUrls: string[] = [];
     
     for (const file of filesToUpload) {
       try {
-        console.log('🔥🔥🔥 Uploading file:', file.name, 'size:', file.size, 'type:', file.type);
-        console.log('🔥🔥🔥 content SDK available:', !!content);
-        console.log('🔥🔥🔥 uploadFile method available:', typeof content.uploadFile);
-        
         const result = await content.uploadFile(file, '/content/uploads/');
-        console.log('🔥🔥🔥 Upload result:', result);
-        console.log('🔥🔥🔥 Upload result keys:', Object.keys(result || {}));
-        console.log('🔥🔥🔥 Upload result type:', typeof result);
         
         // 結果の様々な可能性をチェック
         let imageUrl = null;
@@ -339,14 +281,9 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
         }
         
         if (imageUrl) {
-          console.log('🔥🔥🔥 Adding URL to state:', imageUrl);
           newUrls.push(imageUrl);
-        } else {
-          console.log('🔥🔥🔥 No URL found in upload result:', result);
-          console.log('🔥🔥🔥 Result structure:', JSON.stringify(result, null, 2));
         }
       } catch (err) {
-        console.error('🔥🔥🔥 Image upload error:', err);
         toast({
           title: "画像のアップロードに失敗しました",
           description: err?.message || 'Unknown error',
@@ -356,51 +293,25 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
     }
     
     if (newUrls.length > 0) {
-      console.log('🔥🔥🔥 Updating imageUrls state with:', newUrls);
-      setImageUrls(prev => {
-        const updatedUrls = [...prev, ...newUrls];
-        console.log('🔥🔥🔥 Final image URLs state:', updatedUrls);
-        return updatedUrls;
-      });
+      setImageUrls(prev => [...prev, ...newUrls]);
       
       // アップロード成功をトーストで通知
       toast({
         title: `${newUrls.length}枚の画像をアップロードしました`
       });
-    } else {
-      console.log('🔥🔥🔥 No new URLs to add');
     }
   };
 
-  // 変更イベントハンドラ
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('🔥🔥🔥 File input onChange triggered!');
-    console.log('🔥🔥🔥 Files property:', e.target.files);
     handleImageUpload(e.target.files);
-    // ファイル入力をクリア
     e.target.value = '';
   };
-
-  // デバッグ用: 1秒ごとに画像URL状態を確認
-  useEffect(() => {
-    if (isOpen) {
-      const interval = setInterval(() => {
-        console.log('🔥🔥🔥 Current imageUrls state:', imageUrls);
-      }, 1000);
-      return () => clearInterval(interval);
-    }
-  }, [isOpen, imageUrls]);
 
   const handleRemoveImage = (index: number) => {
     setImageUrls(prev => prev.filter((_, i) => i !== index));
   };
 
   const isFormValid = () => {
-    console.log('🔥 isFormValid check:');
-    console.log('🔥 - isAdmin:', isAdmin);
-    console.log('🔥 - editingPost:', editingPost);
-    console.log('🔥 - category_uuid:', formData.category_uuid);
-    
     if (isAdmin && editingPost) return formData.title.trim() && formData.description.trim();
     
     // 共通必須フィールド
@@ -433,17 +344,11 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
       categorySpecificFields = formData.event_date;
     }
     
-    const result = commonFields && hasSubcategory && categorySpecificFields;
-    
-    console.log('🔥 - isFormValid result:', result);
-    return result;
+    return commonFields && hasSubcategory && categorySpecificFields;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('🔥 Submit button clicked - current imageUrls:', imageUrls);
-    console.log('🔥 Submit - imageUrls length:', imageUrls.length);
-    
     if (!isFormValid()) {
       setError('必須項目をすべて入力してください');
       return;
@@ -453,58 +358,24 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
     setError('');
 
     try {
-      // Verify authentication status before submitting
       const currentUser = await auth.getUser();
-      const token = localStorage.getItem('kliv_token');
-      
-      console.log('PostModal - Auth check:', {
-        hasUser: !!currentUser,
-        userUuid: currentUser?.userUuid,
-        hasToken: !!token,
-        tokenLength: token?.length,
-        editingPostId: editingPost?._row_id
-      });
-      
-      if (!currentUser || !currentUser.userUuid || !token) {
-        console.error('PostModal - No authenticated user or token found');
+      if (!currentUser || !currentUser.userUuid) {
         throw new Error('ログインしていません。右上の「ログイン」ボタンからログインしてください。');
       }
       
-      // Verify ownership before updating
-      if (editingPost) {
-        console.log('PostModal - Checking ownership:', {
-          createdBy: editingPost._created_by,
-          currentUser: currentUser.userUuid,
-          isAdmin
-        });
-        
-        if (editingPost._created_by !== currentUser.userUuid && !isAdmin) {
-          console.error('PostModal - Ownership check failed');
-          throw new Error('この投稿を編集する権限がありません。自分の投稿のみ編集できます。');
-        }
+      if (editingPost && editingPost._created_by !== currentUser.userUuid && !isAdmin) {
+        throw new Error('この投稿を編集する権限がありません。自分の投稿のみ編集できます。');
       }
 
-      console.log('FormData before cleanup:', formData);
-      console.log('🔥 imageUrls before save:', imageUrls);
-      console.log('🔥 typeof imageUrls:', typeof imageUrls);
-      console.log('🔥 Array.isArray(imageUrls):', Array.isArray(imageUrls));
-      console.log('🔥 imageUrls content:', JSON.stringify(imageUrls));
-      
       const { location_id, ...cleanFormData } = formData;
       const postData = {
         ...cleanFormData,
         images: imageUrls,
-        location_uuid: formData.location_uuid, // Ensure location_uuid is included
+        location_uuid: formData.location_uuid,
         _updated_at: Math.floor(Date.now() / 1000)
       };
-      console.log('PostData to send:', postData);
 
       if (editingPost) {
-        // Verify ownership before updating
-        if (editingPost._created_by !== currentUser.userUuid && !isAdmin) {
-          throw new Error('この投稿を編集する権限がありません。自分の投稿のみ編集できます。');
-        }
-        console.log('🔥 Ownership verified, updating post...');
         await db.update('posts', { _row_id: `eq.${editingPost._row_id}` }, postData);
         toast({ title: "投稿を更新しました" });
       } else {
@@ -516,13 +387,6 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
       onClose();
       resetForm();
     } catch (err) {
-      console.error('Post operation error:', err);
-      console.error('Error details:', {
-        message: err?.message,
-        stack: err?.stack,
-        response: err?.response,
-        status: err?.status
-      });
       const errorMsg = err?.message || (editingPost ? '投稿の更新に失敗しました' : '投稿の作成に失敗しました');
       setError(errorMsg);
       toast({

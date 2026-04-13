@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Check, Mail, ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import auth from '@/lib/shared/kliv-auth';
 import db from '@/lib/shared/kliv-database';
 import { useToast } from '@/hooks/use-toast';
@@ -28,9 +28,28 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) =>
   const [resetCode, setResetCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [resetStep, setResetStep] = useState(1); // 1: request code, 2: reset password
+  const [resetStep, setResetStep] = useState(1);
   const [error, setError] = useState('');
   const { toast } = useToast();
+
+  const ensureProfileExists = async (user: any) => {
+    try {
+      const existingProfile = await db.query('user_profiles', {
+        user_uuid: `eq.${user.userUuid}`,
+        _deleted: 'eq.0'
+      });
+      
+      if (existingProfile.length === 0) {
+        await db.insert('user_profiles', {
+          user_uuid: user.userUuid,
+          display_name: user.name || user.email,
+          phone: ''
+        });
+      }
+    } catch (err) {
+      // Profile creation is best-effort — don't block login
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,37 +59,16 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) =>
     try {
       const user = await auth.signIn(loginEmail, loginPassword);
       
-      // Verify token was saved
-      const storedToken = localStorage.getItem('kliv_token');
-      if (!storedToken) {
-        throw new Error('ログインに失敗しました。トークンが保存されませんでした。');
-      }
-      
-      console.log('Login successful, token saved:', storedToken ? 'yes' : 'no');
-      
-      // Ensure user profile exists
-      const existingProfile = await db.query('user_profiles', {
-        user_uuid: `eq.${user.userUuid}`,
-        _deleted: 'eq.0'
-      });
-      
-      if (existingProfile.length === 0) {
-        // Create profile with email as display name if no profile exists
-        await db.insert('user_profiles', {
-          user_uuid: user.userUuid,
-          display_name: user.email,
-          phone: ''
-        });
-      }
-      
       onAuthSuccess(user);
       onClose();
       toast({
         title: "ログイン成功",
         description: "ようこそ！",
       });
+
+      // Create profile in background after login completes
+      ensureProfileExists(user);
     } catch (err: any) {
-      console.error('Login error:', err);
       setError(err.message || 'ログインに失敗しました');
     } finally {
       setIsLoading(false);
@@ -83,32 +81,8 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) =>
     setError('');
 
     try {
-      const user = await auth.signUp(registerEmail, registerPassword, registerName);
-      
-      // After signup, sign in immediately to authenticate
+      await auth.signUp(registerEmail, registerPassword, registerName);
       const signedInUser = await auth.signIn(registerEmail, registerPassword);
-      
-      // Verify token was saved
-      const storedToken = localStorage.getItem('kliv_token');
-      if (!storedToken) {
-        throw new Error('登録に失敗しました。トークンが保存されませんでした。');
-      }
-      
-      console.log('Registration successful, token saved:', storedToken ? 'yes' : 'no');
-      
-      // Create user profile
-      const existingProfile = await db.query('user_profiles', {
-        user_uuid: `eq.${signedInUser.userUuid}`,
-        _deleted: 'eq.0'
-      });
-      
-      if (existingProfile.length === 0) {
-        await db.insert('user_profiles', {
-          user_uuid: signedInUser.userUuid,
-          display_name: registerName || signedInUser.email,
-          phone: ''
-        });
-      }
       
       onAuthSuccess(signedInUser);
       onClose();
@@ -116,8 +90,10 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) =>
         title: "登録完了",
         description: "アカウントが作成されました！",
       });
+
+      // Create profile in background after login completes
+      ensureProfileExists(signedInUser);
     } catch (err: any) {
-      console.error('Registration error:', err);
       setError(err.message || '登録に失敗しました');
     } finally {
       setIsLoading(false);
@@ -157,13 +133,8 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) =>
     try {
       const response = await fetch('/api/v2/auth/password-reset-complete', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          token: resetCode,
-          password: newPassword
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: resetCode, password: newPassword })
       });
 
       if (response.ok) {
@@ -184,7 +155,6 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) =>
   };
 
   const handleClose = () => {
-    // Reset all states
     setLoginEmail('');
     setLoginPassword('');
     setRegisterEmail('');

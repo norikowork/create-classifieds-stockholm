@@ -74,18 +74,14 @@ const Profile = () => {
       }
       
       setUser(currentUser);
-      console.log('🔍 Profile - Loading data for user:', currentUser.userUuid);
       
       // Load user profile
       const profiles = await db.query('user_profiles', { 
         user_uuid: `eq.${currentUser.userUuid}` 
       });
       
-      console.log('🔍 Profile - Profiles loaded:', profiles);
-      
       if (profiles.length > 0) {
         const profile = profiles[0];
-        console.log('🔍 Profile - Setting profile with photo_url:', profile.profile_photo_url);
         setUserProfile(profile);
         setEditForm({
           display_name: profile.display_name || '',
@@ -93,8 +89,6 @@ const Profile = () => {
           location: profile.location || '',
           phone: profile.phone || ''
         });
-      } else {
-        console.log('🔍 Profile - No profile found for user');
       }
       
       // Load user posts
@@ -135,11 +129,9 @@ const Profile = () => {
 
   const handleSaveProfile = async () => {
     try {
-      console.log('💾 Profile - Saving profile data:', editForm);
       const now = Math.floor(Date.now() / 1000);
 
       if (userProfile) {
-        console.log('💾 Profile - Updating existing profile');
         await db.update('user_profiles',
           { user_uuid: `eq.${user.userUuid}` },
           {
@@ -149,7 +141,6 @@ const Profile = () => {
           }
         );
       } else {
-        console.log('💾 Profile - Creating new profile');
         await db.insert('user_profiles', {
           user_uuid: user.userUuid,
           ...editForm,
@@ -163,7 +154,6 @@ const Profile = () => {
       });
 
       if (updatedProfiles.length > 0) {
-        console.log('💾 Profile - Updated profile loaded:', updatedProfiles[0]);
         setUserProfile(updatedProfiles[0]);
       }
 
@@ -185,17 +175,11 @@ const Profile = () => {
 
   const handleProfilePhotoUpload = async (event) => {
     const file = event.target.files[0];
-    if (!file) {
-      console.log('📤 Profile - No file selected');
-      return;
-    }
-
-    console.log('📤 Profile - File selected:', file.name, 'size:', file.size, 'type:', file.type);
+    if (!file) return;
 
     // ファイルサイズチェック（1MB = 1,048,576 bytes）
     const maxSize = 1 * 1024 * 1024;
     if (file.size > maxSize) {
-      console.log('📤 Profile - File too large:', file.size);
       toast({
         title: "ファイルサイズ超過",
         description: "プロフィール写真は1MBまでです",
@@ -207,7 +191,6 @@ const Profile = () => {
 
     // 画像ファイルチェック
     if (!file.type.startsWith('image/')) {
-      console.log('📤 Profile - Not an image file:', file.type);
       toast({
         title: "ファイル形式エラー",
         description: "画像ファイルを選択してください",
@@ -219,25 +202,13 @@ const Profile = () => {
 
     try {
       setProfilePhotoUploading(true);
-      console.log('📤 Profile - Starting upload...');
 
-      // プロフィール写真をアップロード
-      const uploadPath = '/content/profile-photos/';
-      console.log('📤 Profile - Upload path:', uploadPath);
-      const result = await content.uploadFile(file, uploadPath);
-
-      console.log('📤 Profile - Upload result:', result);
-      console.log('📤 Profile - Upload result keys:', Object.keys(result));
-      console.log('📤 Profile - Upload result contentUrl:', result.contentUrl);
-
-      // 正しいURLを取得 - contentUrl プロパティを使用
+      const result = await content.uploadFile(file, '/content/profile-photos/');
       const photoUrl = result.contentUrl || result.url || result.fileUrl;
-      console.log('📤 Profile - Using photo URL:', photoUrl);
 
       // プロフィールを更新
       const now = Math.floor(Date.now() / 1000);
       if (userProfile) {
-        console.log('📤 Profile - Updating existing profile with photo URL:', photoUrl);
         await db.update('user_profiles',
           { user_uuid: `eq.${user.userUuid}` },
           {
@@ -247,8 +218,6 @@ const Profile = () => {
           }
         );
       } else {
-        console.log('📤 Profile - Creating new profile with photo URL:', photoUrl);
-        // プロフィールが存在しない場合は作成
         await db.insert('user_profiles', {
           user_uuid: user.userUuid,
           profile_photo_url: photoUrl,
@@ -256,14 +225,11 @@ const Profile = () => {
         });
       }
 
-      // データベースから最新のプロフィール情報を再取得
-      console.log('📤 Profile - Refreshing profile data from database');
       const updatedProfiles = await db.query('user_profiles', {
         user_uuid: `eq.${user.userUuid}`
       });
 
       if (updatedProfiles.length > 0) {
-        console.log('📤 Profile - Setting updated profile:', updatedProfiles[0]);
         setUserProfile(updatedProfiles[0]);
       }
 
@@ -297,19 +263,13 @@ const Profile = () => {
         try {
           // URLからファイルパスを抽出
           const photoUrl = userProfile.profile_photo_url;
-          console.log('🗑️ Profile - Attempting to delete photo file:', photoUrl);
-
-          // contentUrlからファイルパスを取得
-          // ファイルパスは通常 /content/profile-photos/filename の形式
           const urlParts = photoUrl.split('/content/');
           if (urlParts.length > 1) {
             const filePath = '/content/' + urlParts[1];
-            console.log('🗑️ Profile - Deleting file at path:', filePath);
             await content.deleteFile(filePath);
-            console.log('🗑️ Profile - File deleted successfully');
           }
         } catch (fileError) {
-          console.warn('🗑️ Profile - Could not delete file (may not exist):', fileError);
+          // File deletion failed - continue with DB cleanup
           // ファイルの削除に失敗しても続行（データベース参照は削除する）
         }
       }
@@ -695,7 +655,7 @@ const Profile = () => {
           <TabsContent value="posts" className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold">投稿した広告</h2>
-              <Button onClick={() => navigate('/')}>
+              <Button onClick={() => { setEditingPost(null); setIsPostModalOpen(true); }}>
                 新規投稿
               </Button>
             </div>
@@ -707,7 +667,7 @@ const Profile = () => {
                     <div className="text-6xl mb-4">📝</div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">投稿はありません</h3>
                     <p className="text-gray-500 mb-4">最初の投稿を作成しましょう</p>
-                    <Button onClick={() => navigate('/')}>
+                    <Button onClick={() => { setEditingPost(null); setIsPostModalOpen(true); }}>
                       投稿する
                     </Button>
                   </div>
