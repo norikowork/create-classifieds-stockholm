@@ -713,9 +713,15 @@ const Profile = () => {
                               <Calendar className="w-3 h-3 mr-1" />
                               {formatDate(post._created_at)}
                             </span>
-                            {post.price && (
-                              <span className="font-semibold text-green-600">{post.price}</span>
-                            )}
+                            {post.price ? (
+                              <span className="font-semibold text-green-600">
+                                {post.post_type === 'free' ? (
+                                  <><span className="line-through opacity-50">{post.price}</span> 0kr</>
+                                ) : (
+                                  post.price
+                                )}
+                              </span>
+                            ) : null}
                           </div>
                         </div>
                         <div className="flex space-x-2">

@@ -602,7 +602,11 @@ const PostDetail = () => {
                       )}
                       {post.price && post.post_type !== 'event' && (
                         <span className="text-green-600 font-semibold text-base sm:text-lg">
-                          {post.price}
+                          {post.post_type === 'free' ? (
+                            <><span className="line-through opacity-50">{post.price}</span> 0kr</>
+                          ) : (
+                            post.price
+                          )}
                         </span>
                       )}
                       {post.post_type === 'event' && post.event_date_readable && (
