@@ -833,12 +833,6 @@ const Index = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-start gap-2 mb-1">
                         <h3 className="text-base font-semibold truncate">{post.title}</h3>
-                        <Badge
-                          variant="secondary"
-                          className="flex-shrink-0 text-xs text-gray-600"
-                        >
-                          {postTypeLabels[post.post_type]}
-                        </Badge>
                       </div>
                       {/* Date and Price row */}
                       <div className="flex items-center gap-2 mb-2 text-xs text-gray-500">

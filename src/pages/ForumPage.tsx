@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MessageSquare, Search, Clock, User, Reply, Home, Briefcase, GraduationCap, Car, Heart, Stethoscope, Baby, ShoppingBag, Plane, Calendar, Users, Wrench, DollarSign, FileText, Coffee } from 'lucide-react';
+import { MessageSquare, Search, Clock, User, Reply, Home, Briefcase, GraduationCap, Car, Heart, Stethoscope, Baby, ShoppingBag, Plane, Calendar, Users, Wrench, DollarSign, FileText, Coffee, Shield } from 'lucide-react';
 import ForumTopicForm from '@/components/ForumTopicForm';
 import { FORUM_CATEGORIES } from '@/constants/forumCategories';
 import db from '@/lib/shared/kliv-database.js';
@@ -153,7 +153,64 @@ export default function ForumPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <Link to="/" className="flex items-center space-x-2 flex-shrink-0 hover:opacity-80 transition-opacity">
+              <img 
+                src="/content/templates/sverigejplogo.png" 
+                alt="Sverige.JP Logo"
+                className="h-10 w-10 sm:h-12 sm:w-12 object-contain flex-shrink-0"
+                style={{ width: '48px', height: '48px' }}
+              />
+              <div className="flex flex-col">
+                <h1 className="text-xl font-bold text-gray-900 hidden sm:block">Sverige.JP</h1>
+                <h1 className="text-base font-bold text-gray-900 sm:hidden">Sverige.JP</h1>
+                <p className="text-xs text-gray-600 hidden md:block">スウェーデン日本コミュニティ</p>
+              </div>
+            </Link>
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+              {user ? (
+                <div className="flex items-center gap-1 sm:gap-2 flex-wrap justify-end">
+                  <User className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 flex-shrink-0" />
+                  <span className="text-xs sm:text-sm text-gray-700 truncate max-w-[100px] sm:max-w-[150px]">
+                    {user.firstName || user.email?.split('@')[0]}
+                  </span>
+                  <Button variant="ghost" size="sm" className="h-8 text-xs px-2 sm:px-3" onClick={() => window.location.href = '/profile'}>
+                    <span className="hidden sm:inline">プロフィール</span>
+                    <span className="sm:hidden">プロフ</span>
+                  </Button>
+                  {user.isPrimaryOrg && (
+                    <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => window.location.href = '/admin'}>
+                      <Shield className="w-4 h-4" />
+                    </Button>
+                  )}
+                  <Button variant="outline" size="sm" className="h-8 text-xs px-2" onClick={async () => {
+                    await auth.signOut();
+                    window.location.href = '/';
+                  }}>
+                    <span className="hidden sm:inline">ログアウト</span>
+                    <span className="sm:hidden">ログアウト</span>
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => window.location.href = '/?login=true'}>
+                    ログイン
+                  </Button>
+                  <Button size="sm" className="h-8 text-xs px-2" onClick={() => window.location.href = '/?register=true'}>
+                    新規登録
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
       <div className="flex-1 bg-gray-50 py-8">
         <div className="container mx-auto px-4">
         <div className="mb-8">
