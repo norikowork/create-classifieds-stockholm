@@ -162,8 +162,10 @@ const Index = () => {
         if (post._created_by) {
           const user = userMap.get(post._created_by);
           if (user) {
-            userName = user.first_name && user.last_name 
-              ? `${user.first_name} ${user.last_name}`
+            // 表示名を優先、なければ名前、なければメール
+            userName = user.display_name 
+              || user.first_name && user.last_name 
+                ? `${user.first_name} ${user.last_name}`
               : user.email || 'SverigeJP スタッフ';
           }
         }
@@ -518,7 +520,7 @@ const Index = () => {
                 <div className="flex items-center gap-1 sm:gap-2 flex-wrap justify-end">
                   <User className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 flex-shrink-0" />
                   <span className="text-xs sm:text-sm text-gray-700 truncate max-w-[100px] sm:max-w-[150px]">
-                    {user.firstName || user.email?.split('@')[0]}
+                    {user.display_name || user.firstName || user.email?.split('@')[0]}
                   </span>
                   <Button variant="ghost" size="sm" className="h-8 text-xs px-2 sm:px-3" onClick={() => navigate('/profile')}>
                     <span className="hidden sm:inline">プロフィール</span>
