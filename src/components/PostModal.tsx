@@ -456,7 +456,9 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
     // Contact fields
     contact_method: 'email',
     phone: '',
-    email: user?.email || ''
+    email: user?.email || '',
+    // Detailed address
+    zip_code: ''
   });
   const [error, setError] = useState('');
 
@@ -478,12 +480,12 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
         post_type: editingPost.post_type || 'free',
         price: editingPost.price || '',
         location_uuid: editingPost.location_uuid || editingPost.location || '',
-        postal_code: editingPost.postal_code || '',
         // Detailed address fields
         show_detailed_address: editingPost.show_detailed_address || false,
         street: editingPost.street || '',
         cross_street: editingPost.cross_street || '',
         city: editingPost.city || '',
+        zip_code: editingPost.zip_code || '',
         // For Sale fields
         brand: editingPost.brand || '',
         model_name: editingPost.model_name || '',
@@ -543,12 +545,12 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
       post_type: 'free',
       price: '',
       location_uuid: '',
-      postal_code: '',
       // Detailed address fields
       show_detailed_address: false,
       street: '',
       cross_street: '',
       city: '',
+      zip_code: '',
       // For Sale fields
       brand: '',
       model_name: '',
@@ -797,6 +799,7 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
         street: formData.street || '',
         cross_street: formData.cross_street || '',
         city: formData.city || '',
+        zip_code: formData.zip_code || '',
         _updated_at: Math.floor(Date.now() / 1000)
       };
 
@@ -959,17 +962,6 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
                   </div>
                 )}
 
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="postal_code">郵便番号</Label>
-                <Input
-                  id="postal_code"
-                  value={formData.postal_code}
-                  onChange={(e) => handleInputChange('postal_code', e.target.value)}
-                  placeholder="例：123 45 または 12345"
-                  className="text-base"
-                />
               </div>
             </CardContent>
           </Card>
@@ -1521,6 +1513,17 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
                         value={formData.city}
                         onChange={(e) => handleInputChange('city', e.target.value)}
                         placeholder="例：ストックホルム市"
+                        className="text-base"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="zip_code">郵便番号</Label>
+                      <Input
+                        id="zip_code"
+                        value={formData.zip_code}
+                        onChange={(e) => handleInputChange('zip_code', e.target.value)}
+                        placeholder="例：123 45 または 12345"
                         className="text-base"
                       />
                     </div>
