@@ -523,49 +523,51 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
             </CardContent>
           </Card>
 
-          {/* 価格 - 全てのカテゴリーで表示 */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <DollarSign className="w-5 h-5" />
-                価格
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="is_free"
-                    checked={formData.price === '無料' || formData.price === '0'}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        handleInputChange('price', '無料');
-                      } else {
-                        handleInputChange('price', '');
-                      }
-                    }}
-                    className="w-4 h-4"
-                  />
-                  <Label htmlFor="is_free" className="cursor-pointer">無料</Label>
-                </div>
-                {formData.price !== '無料' && formData.price !== '0' && (
-                  <div className="flex items-center gap-2">
-                    <Input
-                      id="price"
-                      type="number"
-                      value={formData.price}
-                      onChange={(e) => handleInputChange('price', e.target.value)}
-                      placeholder="500"
-                      className="text-base flex-1"
-                      min="0"
-                    />
-                    <span className="text-gray-600 font-medium">SEK</span>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+              {/* 価格 - 仕事探し以外のカテゴリーで表示 */}
+              {formData.category_uuid !== 'cat-job-seeking' && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <DollarSign className="w-5 h-5" />
+                      価格
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="is_free"
+                          checked={formData.price === '無料' || formData.price === '0'}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              handleInputChange('price', '無料');
+                            } else {
+                              handleInputChange('price', '');
+                            }
+                          }}
+                          className="w-4 h-4"
+                        />
+                        <Label htmlFor="is_free" className="cursor-pointer">無料</Label>
+                      </div>
+                      {formData.price !== '無料' && formData.price !== '0' && (
+                        <div className="flex items-center gap-2">
+                          <Input
+                            id="price"
+                            type="number"
+                            value={formData.price}
+                            onChange={(e) => handleInputChange('price', e.target.value)}
+                            placeholder="500"
+                            className="text-base flex-1"
+                            min="0"
+                          />
+                          <span className="text-gray-600 font-medium">SEK</span>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
           {/* タイトルと説明 */}
           <Card>
