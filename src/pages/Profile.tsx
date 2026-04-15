@@ -129,9 +129,11 @@ const Profile = () => {
 
   const handleSaveProfile = async () => {
     try {
+      console.log('Saving profile with editForm:', editForm);
       const now = Math.floor(Date.now() / 1000);
 
       if (userProfile) {
+        console.log('Updating existing profile:', userProfile);
         await db.update('user_profiles',
           { user_uuid: `eq.${user.userUuid}` },
           {
@@ -140,21 +142,36 @@ const Profile = () => {
             _updated_at: now
           }
         );
+        console.log('Profile updated successfully');
       } else {
+        console.log('Creating new profile');
         await db.insert('user_profiles', {
           user_uuid: user.userUuid,
           ...editForm,
           last_active: now
         });
+        console.log('Profile created successfully');
       }
 
       // データベースから最新のプロフィール情報を再取得
+      console.log('Fetching updated profile from database...');
       const updatedProfiles = await db.query('user_profiles', {
         user_uuid: `eq.${user.userUuid}`
       });
 
+      console.log('Updated profiles fetched:', updatedProfiles);
+
       if (updatedProfiles.length > 0) {
-        setUserProfile(updatedProfiles[0]);
+        const updatedProfile = updatedProfiles[0];
+        console.log('Setting userProfile to:', updatedProfile);
+        setUserProfile(updatedProfile);
+        // editFormも最新の状態に更新
+        setEditForm({
+          display_name: updatedProfile.display_name || '',
+          bio: updatedProfile.bio || '',
+          location: updatedProfile.location || '',
+          phone: updatedProfile.phone || ''
+        });
       }
 
       setIsEditing(false);
@@ -167,7 +184,7 @@ const Profile = () => {
       console.error('Error saving profile:', error);
       toast({
         title: "エラー",
-        description: "プロフィールの更新に失敗しました",
+        description: "プロフィールの更新に失敗しました: " + error.message,
         variant: "destructive"
       });
     }
