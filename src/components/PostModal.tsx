@@ -54,7 +54,7 @@ const countyNameMap: Record<string, string> = {
   'Jämtland': 'イェムトランド',
   'Västerbotten': 'ヴェステルボッテン',
   'Norrbotten': 'ノールボッテン',
-  'Other': 'その他'
+  'Other': 'スウェーデン以外'
 };
 
 const getCountyNameWithKatakana = (county: string) => {
@@ -607,7 +607,11 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
                     </SelectTrigger>
                     <SelectContent>
                       {Array.from(new Set(locations.map((loc: any) => loc.county)))
-                        .sort()
+                        .sort((a, b) => {
+                          if (a === 'Other') return 1;
+                          if (b === 'Other') return -1;
+                          return a.localeCompare(b);
+                        })
                         .map((county) => (
                           <SelectItem key={county} value={county}>
                             {getCountyNameWithKatakana(county)}
