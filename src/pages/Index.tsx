@@ -685,11 +685,11 @@ const Index = () => {
                       <div className="mb-4">
                         <div className="relative w-full aspect-video bg-gray-100 rounded overflow-hidden">
                           <img 
-                            src={
-                              post.images && Array.isArray(post.images) && post.images.length > 0 
-                                ? post.images[0] 
-                                : '/content/templates/sverige_blank.png'
-                            } 
+                                src={
+                                  post.images && Array.isArray(post.images) && post.images.length > 0 && post.images[0]
+                                    ? post.images[0] 
+                                    : '/content/templates/sverige_blank.png'
+                                }
                             alt="投稿画像"
                             className="w-full h-full object-cover"
                             onError={(e) => {
