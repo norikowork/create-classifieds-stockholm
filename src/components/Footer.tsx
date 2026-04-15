@@ -9,7 +9,12 @@ const Footer = () => {
           {/* Company Info */}
           <div className="col-span-1 md:col-span-2">
             <Link to="/" className="flex items-center space-x-2 mb-4 hover:opacity-80 transition-opacity">
-              <Home className="w-8 h-8 text-blue-400" />
+              <img 
+                src="/content/templates/sverigejplogo.png" 
+                alt="Sverige.JP Logo"
+                className="h-12 w-12 object-contain"
+                style={{ width: '48px', height: '48px' }}
+              />
               <h3 className="text-xl font-bold">Sverige.JP</h3>
             </Link>
             <p className="text-gray-300 mb-4">
