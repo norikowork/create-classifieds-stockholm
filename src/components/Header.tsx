@@ -5,6 +5,7 @@ import auth from '@/lib/shared/kliv-auth.js';
 import { useState, useEffect } from 'react';
 import { AuthModal } from '@/components/AuthModal';
 
+// Header component - updated with sverigejplogo.png image
 const Header = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
