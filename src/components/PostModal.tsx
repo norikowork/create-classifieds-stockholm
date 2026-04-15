@@ -41,6 +41,7 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
   const [categories, setCategories] = useState([]);
   const [locations, setLocations] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
+  const [selectedArea, setSelectedArea] = useState('');
   const [selectedCounty, setSelectedCounty] = useState('');
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [formData, setFormData] = useState({
@@ -150,11 +151,12 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
       const parsedImages = editingPost.images ? (typeof editingPost.images === 'string' ? JSON.parse(editingPost.images) : editingPost.images) : [];
       setImageUrls(parsedImages);
 
-      // Set selectedCounty from editingPost's location
+      // Set selectedArea and selectedCounty from editingPost's location
       if (editingPost.location_uuid || editingPost.location) {
         const location = locations.find((loc: any) => loc.uuid === (editingPost.location_uuid || editingPost.location));
         if (location) {
-          setSelectedCounty(location.county || 'Other');
+          setSelectedArea(location.area || '');
+          setSelectedCounty(location.county || '');
         }
       }
     } else if (isOpen && !editingPost) {
@@ -207,6 +209,7 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
       email: user?.email || ''
     });
     setImageUrls([]);
+    setSelectedArea('');
     setSelectedCounty('');
     setError('');
   };
@@ -250,7 +253,15 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
       return;
     }
 
-    // County選択時にlocation_uuidをクリア
+    // Area選択時にCountyとMunicipalityをクリア
+    if (field === 'selectedArea') {
+      setSelectedArea(value);
+      setSelectedCounty('');
+      setFormData(prev => ({ ...prev, location_uuid: '' }));
+      return;
+    }
+
+    // County選択時にMunicipalityをクリア
     if (field === 'selectedCounty') {
       setSelectedCounty(value);
       setFormData(prev => ({ ...prev, location_uuid: '' }));
@@ -537,45 +548,70 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
                   </div>
                 )}
 
+                {/* 3階層地域選択: Area → County → Municipality */}
                 <div className="space-y-2">
-                  <Label htmlFor="county">エリア（地域） *</Label>
+                  <Label htmlFor="area">エリア（地域） *</Label>
                   <Select 
-                    value={selectedCounty} 
-                    onValueChange={(value) => handleInputChange('selectedCounty', value)}
+                    value={selectedArea} 
+                    onValueChange={(value) => handleInputChange('selectedArea', value)}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="エリアを選択してください" />
                     </SelectTrigger>
                     <SelectContent>
-                      {Array.from(new Set(locations.map((loc: any) => loc.county || 'Other')))
-                        .sort((a, b) => {
-                          // Otherを最後に
-                          if (a === 'Other') return 1;
-                          if (b === 'Other') return -1;
-                          return a.localeCompare(b);
-                        })
-                        .map((county) => (
-                          <SelectItem key={county} value={county}>
-                            {county}
+                      {Array.from(new Set(locations.map((loc: any) => loc.area || 'Other')))
+                        .sort()
+                        .map((area) => (
+                          <SelectItem key={area} value={area}>
+                            {area === 'gotaland' ? 'イェータランド（南側）' : 
+                             area === 'svealand' ? 'スヴェアランド（中央）' : 
+                             area === 'norrland' ? 'ノールランド（北側）' : area}
                           </SelectItem>
                         ))}
                     </SelectContent>
                   </Select>
                 </div>
 
-                {selectedCounty && (
+                {selectedArea && (
                   <div className="space-y-2">
-                    <Label htmlFor="location">地域（町名） *</Label>
+                    <Label htmlFor="county">県 *</Label>
+                    <Select 
+                      value={selectedCounty} 
+                      onValueChange={(value) => handleInputChange('selectedCounty', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="県を選択してください" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from(new Set(
+                          locations
+                            .filter((loc: any) => loc.area === selectedArea)
+                            .map((loc: any) => loc.county)
+                        ))
+                          .sort()
+                          .map((county) => (
+                            <SelectItem key={county} value={county}>
+                              {county}
+                            </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {selectedArea && selectedCounty && (
+                  <div className="space-y-2">
+                    <Label htmlFor="location">市町村 *</Label>
                     <Select 
                       value={formData.location_uuid} 
                       onValueChange={(value) => handleInputChange('location_uuid', value)}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="地域を選択してください" />
+                        <SelectValue placeholder="市町村を選択してください" />
                       </SelectTrigger>
                       <SelectContent>
                         {locations
-                          .filter((loc: any) => (loc.county || 'Other') === selectedCounty)
+                          .filter((loc: any) => loc.area === selectedArea && loc.county === selectedCounty)
                           .sort((a: any, b: any) => (a.name_ja || a.name_en).localeCompare(b.name_ja || b.name_en))
                           .map((location) => (
                             <SelectItem key={location.uuid} value={location.uuid}>
