@@ -625,13 +625,24 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="price">価格 *</Label>
-                  <Input
-                    id="price"
-                    value={formData.price}
-                    onChange={(e) => handleInputChange('price', e.target.value)}
-                    placeholder="例：500 SEK"
-                    required
-                  />
+                  <div className="flex items-center gap-2">
+                    {formData.post_type === 'free' ? (
+                      <div className="flex items-center gap-2 flex-1">
+                        <span className="line-through opacity-50 text-gray-500">
+                          {formData.price || '価格'}
+                        </span>
+                        <span className="text-green-600 font-bold text-lg">0kr</span>
+                      </div>
+                    ) : (
+                      <Input
+                        id="price"
+                        value={formData.price}
+                        onChange={(e) => handleInputChange('price', e.target.value)}
+                        placeholder="例：500 SEK"
+                        required
+                      />
+                    )}
+                  </div>
                 </div>
                 
                 <div className="space-y-2">
