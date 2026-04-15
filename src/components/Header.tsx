@@ -51,6 +51,14 @@ const Header = () => {
                 alt="Sverige.JP Logo"
                 className="h-10 w-10 sm:h-12 sm:w-12 object-contain"
                 style={{ width: '48px', height: '48px' }}
+                onError={(e) => {
+                  console.error('Logo image failed to load:', e.currentTarget.src);
+                  // Hide broken image
+                  e.currentTarget.style.display = 'none';
+                }}
+                onLoad={() => {
+                  console.log('Logo loaded successfully');
+                }}
               />
               <div className="flex flex-col">
                 <h1 className="text-xl font-bold text-gray-900 hidden sm:block">Sverige.JP</h1>
