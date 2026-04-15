@@ -563,9 +563,10 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
                         .sort()
                         .map((area) => (
                           <SelectItem key={area} value={area}>
-                            {area === 'gotaland' ? 'イェータランド（南側）' : 
-                             area === 'svealand' ? 'スヴェアランド（中央）' : 
-                             area === 'norrland' ? 'ノールランド（北側）' : area}
+                            {area === 'gotaland' ? 'Götaland' : 
+                             area === 'svealand' ? 'Svealand' : 
+                             area === 'norrland' ? 'Norrland' : 
+                             area === 'Other' ? 'Övrigt' : area}
                           </SelectItem>
                         ))}
                     </SelectContent>
@@ -612,10 +613,10 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
                       <SelectContent>
                         {locations
                           .filter((loc: any) => loc.area === selectedArea && loc.county === selectedCounty)
-                          .sort((a: any, b: any) => (a.name_ja || a.name_en).localeCompare(b.name_ja || b.name_en))
+                          .sort((a: any, b: any) => (a.name_en || a.name_ja).localeCompare(b.name_en || b.name_ja))
                           .map((location) => (
                             <SelectItem key={location.uuid} value={location.uuid}>
-                              {location.name_ja || location.name_en}
+                              {location.name_en || location.name_ja}
                             </SelectItem>
                           ))}
                       </SelectContent>
