@@ -588,71 +588,6 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
                 </Card>
               )}
 
-          {/* 詳細住所 - オプション */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <MapPin className="w-5 h-5" />
-                詳細住所（オプション）
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="show_detailed_address"
-                    checked={formData.show_detailed_address}
-                    onChange={(e) => handleInputChange('show_detailed_address', e.target.checked)}
-                    className="w-4 h-4"
-                  />
-                  <Label htmlFor="show_detailed_address" className="cursor-pointer">詳細住所を表示する</Label>
-                </div>
-                {formData.show_detailed_address && (
-                  <div className="space-y-4 mt-4 p-4 bg-gray-50 rounded-lg">
-                    <div className="space-y-2">
-                      <Label htmlFor="street">番地・ストリート名</Label>
-                      <Input
-                        id="street"
-                        value={formData.street}
-                        onChange={(e) => handleInputChange('street', e.target.value)}
-                        placeholder="例：Kungsgatan 1"
-                        className="text-base"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="cross_street">交差点・目標</Label>
-                      <Input
-                        id="cross_street"
-                        value={formData.cross_street}
-                        onChange={(e) => handleInputChange('cross_street', e.target.value)}
-                        placeholder="例：Sergels Torgの近く"
-                        className="text-base"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="city">都市・地域</Label>
-                      <Input
-                        id="city"
-                        value={formData.city}
-                        onChange={(e) => handleInputChange('city', e.target.value)}
-                        placeholder="例：ストックホルム市"
-                        className="text-base"
-                      />
-                    </div>
-                  </div>
-                )}
-                {!formData.show_detailed_address && (
-                  <div className="text-sm text-gray-500 italic">
-                    ※ 詳細住所を表示しない場合、「そのエリア」として表示されます
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
           {/* タイトルと説明 */}
           <Card>
             <CardHeader>
@@ -1100,6 +1035,71 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
                   />
                 </div>
               )}
+            </CardContent>
+          </Card>
+
+          {/* 詳細住所 - オプション */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <MapPin className="w-5 h-5" />
+                詳細住所（オプション）
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="show_detailed_address"
+                    checked={formData.show_detailed_address}
+                    onChange={(e) => handleInputChange('show_detailed_address', e.target.checked)}
+                    className="w-4 h-4"
+                  />
+                  <Label htmlFor="show_detailed_address" className="cursor-pointer">詳細住所を表示する</Label>
+                </div>
+                {formData.show_detailed_address && (
+                  <div className="space-y-4 mt-4 p-4 bg-gray-50 rounded-lg">
+                    <div className="space-y-2">
+                      <Label htmlFor="street">番地・ストリート名</Label>
+                      <Input
+                        id="street"
+                        value={formData.street}
+                        onChange={(e) => handleInputChange('street', e.target.value)}
+                        placeholder="例：Kungsgatan 1"
+                        className="text-base"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="cross_street">交差点・目標</Label>
+                      <Input
+                        id="cross_street"
+                        value={formData.cross_street}
+                        onChange={(e) => handleInputChange('cross_street', e.target.value)}
+                        placeholder="例：Sergels Torgの近く"
+                        className="text-base"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="city">都市・地域</Label>
+                      <Input
+                        id="city"
+                        value={formData.city}
+                        onChange={(e) => handleInputChange('city', e.target.value)}
+                        placeholder="例：ストックホルム市"
+                        className="text-base"
+                      />
+                    </div>
+                  </div>
+                )}
+                {!formData.show_detailed_address && (
+                  <div className="text-sm text-gray-500 italic">
+                    ※ 詳細住所を表示しない場合、「そのエリア」として表示されます
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
 
