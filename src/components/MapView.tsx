@@ -35,7 +35,35 @@ interface MapViewProps {
   getCategoryColor?: (categoryUuid: string) => string;
   getLocationName?: (locationId: string) => string;
   formatDate?: (timestamp: number) => string;
+  userCounty?: string | null;
 }
+
+// County center coordinates for zooming
+const COUNTY_CENTERS: Record<string, [number, number]> = {
+  'Stockholm': [59.3293, 18.0686],
+  'Uppsala': [59.8586, 17.6389],
+  'Södermanland': [59.1167, 16.5000],
+  'Östergötland': [58.4109, 15.6217],
+  'Jönköping': [57.7817, 14.0678],
+  'Kronoberg': [56.8786, 14.8090],
+  'Kalmar': [56.6603, 16.3350],
+  'Gotland': [57.5000, 18.5000],
+  'Blekinge': [56.1617, 15.5861],
+  'Skåne': [55.6050, 13.0038],
+  'Halland': [56.6744, 12.8578],
+  'Västra Götaland': [57.7089, 11.9746],
+  'Värmland': [59.4039, 13.5057],
+  'Örebro': [59.2749, 15.2066],
+  'Västmanland': [59.6162, 16.5528],
+  'Dalarna': [60.6061, 15.6347],
+  'Gävleborg': [60.6749, 17.1413],
+  'Västernorrland': [62.3908, 17.3069],
+  'Jämtland': [63.1767, 14.6361],
+  'Västerbotten': [63.8284, 20.2597],
+  'Norrbotten': [65.5867, 22.1567]
+};
+
+const COUNTY_ZOOM = 8;
 
 // Sweden center coordinates - centered to show all of Sweden
 const SWEDEN_CENTER: [number, number] = [60.0, 15.0];  // Center of Sweden
@@ -96,7 +124,7 @@ const loadCustomStyles = () => {
   customStylesLoaded = true;
 };
 
-export default function MapView({ posts, locations, onPostClick, selectedPostId, getCategoryName, getCategoryColor, getLocationName, formatDate }: MapViewProps) {
+export default function MapView({ posts, locations, onPostClick, selectedPostId, getCategoryName, getCategoryColor, getLocationName, formatDate, userCounty }: MapViewProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
@@ -106,10 +134,13 @@ export default function MapView({ posts, locations, onPostClick, selectedPostId,
 
   // Memoize posts with valid locations to avoid recalculating
   const postsWithLocation = useMemo(() => {
-    return posts.filter(post => {
+    const validPosts = posts.filter(post => {
       const location = locations.find(l => l.uuid === post.location_uuid);
+      console.log('Post:', post._row_id, 'Title:', post.title, 'Location UUID:', post.location_uuid, 'Found location:', location);
       return location && location.latitude && location.longitude;
     }).slice(0, 50);
+    console.log('Valid posts with locations:', validPosts.length);
+    return validPosts;
   }, [posts, locations]);
 
   // Memoize total count for display
@@ -272,18 +303,27 @@ export default function MapView({ posts, locations, onPostClick, selectedPostId,
       }
     });
 
-    // Reset view if no posts
+    // Reset view if no posts - zoom to user's county if available
     if (postsWithLocation.length === 0) {
-      map.setView(SWEDEN_CENTER, DEFAULT_ZOOM);
+      if (userCounty && COUNTY_CENTERS[userCounty]) {
+        map.setView(COUNTY_CENTERS[userCounty], COUNTY_ZOOM);
+      } else {
+        map.setView(SWEDEN_CENTER, DEFAULT_ZOOM);
+      }
       return;
     }
 
-    // Fit map to show all markers (only when no post is selected to avoid jumping)
+    // Fit map to show all markers or user's county (only when no post is selected to avoid jumping)
     if (bounds.length > 0 && !selectedPostId) {
-      map.fitBounds(bounds, { padding: [30, 30], maxZoom: 13 });
+      // If there's only 1 post and user has a county, zoom to user's county
+      if (bounds.length === 1 && userCounty && COUNTY_CENTERS[userCounty]) {
+        map.setView(COUNTY_CENTERS[userCounty], COUNTY_ZOOM);
+      } else {
+        map.fitBounds(bounds, { padding: [30, 30], maxZoom: 13 });
+      }
     }
 
-  }, [isMapReady, postsWithLocation, selectedPostId, locations, selectedIcon, defaultIcon, handleMarkerClick]);
+  }, [isMapReady, postsWithLocation, selectedPostId, locations, selectedIcon, defaultIcon, handleMarkerClick, userCounty]);
 
   return (
     <div className="relative w-full h-[500px] rounded-lg overflow-hidden border-2 border-gray-200">

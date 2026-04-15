@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import auth from '@/lib/shared/kliv-auth';
 import db from '@/lib/shared/kliv-database';
@@ -51,8 +52,10 @@ const Profile = () => {
     display_name: '',
     bio: '',
     location: '',
-    phone: ''
+    phone: '',
+    county: ''
   });
+  const [locations, setLocations] = useState([]);
   const [selectedPost, setSelectedPost] = useState(null);
   const [deletingPost, setDeletingPost] = useState(null);
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
@@ -75,6 +78,10 @@ const Profile = () => {
       
       setUser(currentUser);
       
+      // Load locations for county dropdown
+      const locationsData = await db.query('locations', { _deleted: 'eq.0' });
+      setLocations(locationsData);
+      
       // Load user profile
       const profiles = await db.query('user_profiles', { 
         user_uuid: `eq.${currentUser.userUuid}` 
@@ -87,7 +94,8 @@ const Profile = () => {
           display_name: profile.display_name || '',
           bio: profile.bio || '',
           location: profile.location || '',
-          phone: profile.phone || ''
+          phone: profile.phone || '',
+          county: profile.county || ''
         });
       }
       
@@ -170,7 +178,8 @@ const Profile = () => {
           display_name: updatedProfile.display_name || '',
           bio: updatedProfile.bio || '',
           location: updatedProfile.location || '',
-          phone: updatedProfile.phone || ''
+          phone: updatedProfile.phone || '',
+          county: updatedProfile.county || ''
         });
       }
 
@@ -579,10 +588,17 @@ const Profile = () => {
                       <div>
                         <label className="text-sm font-medium text-gray-600 flex items-center">
                           <MapPin className="w-4 h-4 mr-1" />
-                          場所
+                          県
                         </label>
-                        <p>{userProfile?.location || '未設定'}</p>
+                        <p>{userProfile?.county || '未設定'}</p>
                       </div>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-600 flex items-center">
+                        <MapPin className="w-4 h-4 mr-1" />
+                        詳細住所
+                      </label>
+                      <p>{userProfile?.location || '未設定'}</p>
                     </div>
                   </div>
                 ) : (
@@ -618,14 +634,38 @@ const Profile = () => {
                         />
                       </div>
                       <div>
-                        <Label htmlFor="location">場所</Label>
-                        <Input
-                          id="location"
-                          value={editForm.location}
-                          onChange={(e) => setEditForm(prev => ({ ...prev, location: e.target.value }))}
-                          placeholder="ストックホルム"
-                        />
+                        <Label htmlFor="county">県 *</Label>
+                        <Select 
+                          value={editForm.county} 
+                          onValueChange={(value) => setEditForm(prev => ({ ...prev, county: value }))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="県を選択してください" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Array.from(new Set(locations.map((loc: any) => loc.county)))
+                              .sort((a, b) => {
+                                if (a === 'Other') return 1;
+                                if (b === 'Other') return -1;
+                                return a.localeCompare(b);
+                              })
+                              .map((county) => (
+                                <SelectItem key={county} value={county}>
+                                  {county}
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
                       </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="location">詳細住所</Label>
+                      <Input
+                        id="location"
+                        value={editForm.location}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, location: e.target.value }))}
+                        placeholder="地区や通りなど"
+                      />
                     </div>
                     <div className="flex space-x-2">
                       <Button type="submit">保存</Button>

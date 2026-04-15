@@ -64,6 +64,7 @@ const Index = () => {
   const [selectedMonth, setSelectedMonth] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [priceSort, setPriceSort] = useState<'none' | 'asc' | 'desc'>('none');
+  const [userCounty, setUserCounty] = useState<string | null>(null);
   const postsPerPage = 20; // Posts per page
 
   // Post type labels
@@ -206,6 +207,16 @@ const Index = () => {
     try {
       const currentUser = await auth.getUser();
       setUser(currentUser);
+      
+      // Load user's profile to get their county
+      if (currentUser) {
+        const profiles = await db.query('user_profiles', {
+          user_uuid: `eq.${currentUser.userUuid}`
+        });
+        if (profiles.length > 0 && profiles[0].county) {
+          setUserCounty(profiles[0].county);
+        }
+      }
     } catch (error) {
       // Not authenticated
     }
@@ -1032,6 +1043,7 @@ const Index = () => {
                   getCategoryColor={getCategoryColor}
                   getLocationName={getLocationName}
                   formatDate={formatDate}
+                  userCounty={userCounty}
                 />
 
                 {/* Location Legend */}
