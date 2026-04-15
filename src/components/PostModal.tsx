@@ -950,7 +950,7 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
                           .filter((loc: any) => loc.county === selectedCounty)
                           .sort((a: any, b: any) => (a.name_en || a.name_ja).localeCompare(b.name_en || b.name_ja))
                           .map((location) => (
-                            <SelectItem key={location.uuid} value={location.uuid}>
+                            <SelectItem key={location.uuid || location._row_id} value={location.uuid || location._row_id}>
                               {getMunicipalityNameWithKatakana(location.name_en, location.county)}
                             </SelectItem>
                           ))}
