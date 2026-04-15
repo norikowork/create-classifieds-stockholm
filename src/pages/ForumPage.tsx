@@ -13,7 +13,6 @@ import auth from '@/lib/shared/kliv-auth.js';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { ja } from 'date-fns/locale';
-import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
 interface ForumTopic {
@@ -141,7 +140,6 @@ export default function ForumPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col">
-        <Header />
         <div className="flex-1 bg-gray-50 py-8">
           <div className="container mx-auto px-4">
             <div className="text-center">
@@ -156,7 +154,6 @@ export default function ForumPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header />
       <div className="flex-1 bg-gray-50 py-8">
         <div className="container mx-auto px-4">
         <div className="mb-8">

@@ -10,7 +10,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AuthModal from '@/components/AuthModal';
 import Footer from '@/components/Footer';
-import ShareDropdown from '@/components/ShareDropdown';
 import SingleLocationMap from '@/components/SingleLocationMap';
 import db from '@/lib/shared/kliv-database';
 import auth from '@/lib/shared/kliv-auth';
@@ -613,9 +612,7 @@ const PostDetail = () => {
                       )}
                     </div>
                   </div>
-                  <ShareDropdown
-                    title={post.title}
-                  />
+
                 </div>
 
                 {/* Navigation Posts */}
@@ -651,28 +648,24 @@ const PostDetail = () => {
               </CardHeader>
               <CardContent className="px-4 sm:px-6">
                 {/* Main Image - 50% size */}
-                {post.images && post.images.length > 0 && (
-                  <div className="mb-6">
-                    <div className="relative mx-auto w-1/2">
-                      <img 
-                        src={post.images[selectedImageIndex] || post.images[0]} 
-                        alt={post.title}
-                        className="w-full h-auto object-cover rounded-lg"
-                        onMouseEnter={(e) => {
-                          // Show next image on hover
-                          const currentIndex = selectedImageIndex;
-                          const nextIndex = (currentIndex + 1) % post.images.length;
-                          setSelectedImageIndex(nextIndex);
-                        }}
-                      />
-                      {post.images.length > 1 && (
-                        <div className="absolute bottom-2 left-2 bg-black/60 text-white px-2 py-1 rounded text-xs sm:text-sm">
-                          {selectedImageIndex + 1} / {post.images.length}
-                        </div>
-                      )}
-                    </div>
+                <div className="mb-6">
+                  <div className="relative mx-auto w-1/2">
+                    <img 
+                      src={
+                        post.images && post.images.length > 0
+                          ? post.images[selectedImageIndex] || post.images[0]
+                          : '/content/templates/sverige_blank.png'
+                      } 
+                      alt={post.title}
+                      className="w-full h-auto object-cover rounded-lg"
+                    />
+                    {post.images && post.images.length > 1 && (
+                      <div className="absolute bottom-2 left-2 bg-black/60 text-white px-2 py-1 rounded text-xs sm:text-sm">
+                        {selectedImageIndex + 1} / {post.images.length}
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
 
                 {/* Thumbnail Gallery */}
                 {post.images && post.images.length > 1 && (

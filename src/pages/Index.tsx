@@ -662,29 +662,44 @@ const Index = () => {
                         >
                           {postTypeLabels[post.post_type]}
                         </Badge>
+                        {/* Date and Price row */}
+                        <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
+                          <span>{formatDate(post._created_at)}</span>
+                          {post.price ? (
+                            <span className="font-semibold text-green-600">
+                              {post.price}
+                            </span>
+                          ) : null}
+                          {post.post_type === 'event' && post.event_date_readable && (
+                            <span className="font-semibold text-purple-600">
+                              📅 {post.event_date_readable}
+                            </span>
+                          )}
+                        </div>
                       </CardDescription>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  {/* Images */}
-                  {post.images && post.images.length > 0 && (
-                    <div className="mb-4">
-                      <div className="relative w-full aspect-video bg-gray-100 rounded overflow-hidden">
-                        <img 
-                          src={post.images[0]} 
-                          alt="投稿画像"
-                          className="w-full h-full object-cover"
-                        />
-                        {post.images.length > 1 && (
-                          <div className="absolute top-2 right-2 bg-black/60 text-white px-2 py-1 rounded text-xs">
-                            {post.images.length}枚の画像
-                          </div>
-                        )}
+                      {/* Images */}
+                      <div className="mb-4">
+                        <div className="relative w-full aspect-video bg-gray-100 rounded overflow-hidden">
+                          <img 
+                            src={
+                              post.images && post.images.length > 0 
+                                ? post.images[0] 
+                                : '/content/templates/sverige_blank.png'
+                            } 
+                            alt="投稿画像"
+                            className="w-full h-full object-cover"
+                          />
+                          {post.images && post.images.length > 1 && (
+                            <div className="absolute top-2 right-2 bg-black/60 text-white px-2 py-1 rounded text-xs">
+                              {post.images.length}枚の画像
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  )}
-                  
                   <p className="text-gray-600 text-sm mb-2 line-clamp-3">
                     {post.description}
                   </p>
@@ -741,34 +756,18 @@ const Index = () => {
                       <span className="font-medium text-gray-700">給料:</span> {post.salary}
                     </div>
                   )}
-                  <div className="flex justify-between items-center text-xs text-gray-500">
-                    <div className="flex gap-2">
-                      {post.employment_type && (
-                        <span className="text-xs text-gray-600">
-                          {employmentTypeLabels[post.employment_type] || post.employment_type}
-                        </span>
-                      )}
-                      {post.experience_level && (
-                        <span className="text-xs text-gray-600">
-                          {experienceLevelLabels[post.experience_level] || post.experience_level}
-                        </span>
-                      )}
-                      {post.post_type === 'event' && post.event_date_readable && (
-                        <span className="font-semibold text-purple-600">
-                          📅 {post.event_date_readable}
-                        </span>
-                      )}
-                      {post.price ? (
-                        <span className="font-semibold text-green-600">
-                          {post.post_type === 'free' ? (
-                            <><span className="line-through opacity-50">{post.price}</span> 0kr</>
-                          ) : (
-                            post.price
-                          )}
-                        </span>
-                      ) : null}
-                    </div>
-                    <span>{formatDate(post._created_at)}</span>
+                  {/* Employment type and experience level */}
+                  <div className="flex gap-2 text-xs text-gray-600 mb-2">
+                    {post.employment_type && (
+                      <span>
+                        {employmentTypeLabels[post.employment_type] || post.employment_type}
+                      </span>
+                    )}
+                    {post.experience_level && (
+                      <span>
+                        {experienceLevelLabels[post.experience_level] || post.experience_level}
+                      </span>
+                    )}
                   </div>
                   <div className="mt-4 pt-4 border-t">
                     <Link to={`/post/${post._row_id}`}>
@@ -824,6 +823,20 @@ const Index = () => {
                         >
                           {postTypeLabels[post.post_type]}
                         </Badge>
+                      </div>
+                      {/* Date and Price row */}
+                      <div className="flex items-center gap-2 mb-2 text-xs text-gray-500">
+                        <span>{formatDate(post._created_at)}</span>
+                        {post.price ? (
+                          <span className="font-semibold text-green-600">
+                            {post.price}
+                          </span>
+                        ) : null}
+                        {post.post_type === 'event' && post.event_date_readable && (
+                          <span className="font-semibold text-purple-600">
+                            📅 {post.event_date_readable}
+                          </span>
+                        )}
                       </div>
                       <p className="text-gray-600 text-sm line-clamp-2 mb-2">
                         {post.description}
@@ -890,21 +903,6 @@ const Index = () => {
                             <span className="font-medium">経験:</span> {experienceLevelLabels[post.experience_level] || post.experience_level}
                           </span>
                         )}
-                        {post.price ? (
-                          <span className="font-semibold text-green-600">
-                            {post.post_type === 'free' ? (
-                              <><span className="line-through opacity-50">{post.price}</span> 0kr</>
-                            ) : (
-                              post.price
-                            )}
-                          </span>
-                        ) : null}
-                        {post.post_type === 'event' && post.event_date_readable && (
-                          <span className="font-semibold text-purple-600">
-                            📅 {post.event_date_readable}
-                          </span>
-                        )}
-                        <span>{formatDate(post._created_at)}</span>
                       </div>
                     </div>
                     {/* Action */}

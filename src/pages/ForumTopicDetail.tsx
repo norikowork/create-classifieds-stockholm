@@ -8,7 +8,6 @@ import { Label } from '@/components/ui/label';
 import { ArrowLeft, MessageSquare, Clock, User, Reply, Loader2, Send, Trash2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ja } from 'date-fns/locale';
-import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import db from '@/lib/shared/kliv-database.js';
 import auth from '@/lib/shared/kliv-auth.js';
@@ -153,7 +152,6 @@ export default function ForumTopicDetail() {
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col">
-        <Header />
         <div className="flex-1 bg-gray-50 py-8">
           <div className="container mx-auto px-4">
             <div className="text-center">
@@ -169,7 +167,6 @@ export default function ForumTopicDetail() {
   if (!topic) {
     return (
       <div className="min-h-screen flex flex-col">
-        <Header />
         <div className="flex-1 bg-gray-50 py-8">
           <div className="container mx-auto px-4">
             <Card>
@@ -189,7 +186,6 @@ export default function ForumTopicDetail() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header />
       <div className="flex-1 bg-gray-50 py-8">
         <div className="container mx-auto px-4 max-w-4xl">
         {/* Back Button */}
