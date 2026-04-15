@@ -120,12 +120,13 @@ const Index = () => {
 
   const loadData = async () => {
     try {
-      const [categoriesData, locationsData, subcategoriesData, postsData, usersData] = await Promise.all([
+      const [categoriesData, locationsData, subcategoriesData, postsData, usersData, profilesData] = await Promise.all([
         db.query('categories', { _deleted: 'eq.0' }),
         db.query('locations', { _deleted: 'eq.0' }),
         db.query('subcategories', { _deleted: 'eq.0' }),
         db.query('posts', { status: 'eq.active', _deleted: 'eq.0', order: '_created_at.desc' }),
-        db.query('users', { _deleted: 'eq.0' })
+        db.query('users', { _deleted: 'eq.0' }),
+        db.query('user_profiles', { _deleted: 'eq.0' })
       ]);
       
       setCategories(categoriesData);
@@ -136,6 +137,12 @@ const Index = () => {
       const userMap = new Map();
       usersData.forEach(user => {
         userMap.set(user.user_uuid, user);
+      });
+      
+      // Create a Map for quick profile lookup
+      const profileMap = new Map();
+      profilesData.forEach(profile => {
+        profileMap.set(profile.user_uuid, profile);
       });
       
       // Parse images JSON for each post and get user info from Map
@@ -157,15 +164,18 @@ const Index = () => {
           }
         }
 
-        // Get user information from Map (no additional DB query)
+        // Get user information from Maps (no additional DB query)
         let userName = 'SverigeJP スタッフ';
         if (post._created_by) {
+          const profile = profileMap.get(post._created_by);
           const user = userMap.get(post._created_by);
-          if (user) {
-            // 表示名を優先、なければ名前、なければメール
-            userName = user.display_name 
-              || user.first_name && user.last_name 
-                ? `${user.first_name} ${user.last_name}`
+          
+          // プロフィールの表示名を優先、なければユーザーの名前、なければメール
+          if (profile && profile.display_name) {
+            userName = profile.display_name;
+          } else if (user) {
+            userName = user.first_name && user.last_name 
+              ? `${user.first_name} ${user.last_name}`
               : user.email || 'SverigeJP スタッフ';
           }
         }
@@ -690,9 +700,14 @@ const Index = () => {
                         {/* Date and Price row */}
                         <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
                           <span>{formatDate(post._created_at)}</span>
+                          {post.category_uuid === 'cat-job-seeking' && post.employment_type && (
+                            <span className="font-semibold text-blue-600">
+                              {employmentTypeLabels[post.employment_type] || post.employment_type}
+                            </span>
+                          )}
                           {post.post_type === 'free' && post.price && (
                             <span className="font-semibold text-green-600">
-                              {post.price}
+                              {post.price} SEK
                             </span>
                           )}
                           {post.post_type === 'event' && post.event_date_readable && (
@@ -860,9 +875,14 @@ const Index = () => {
                       {/* Date and Price row */}
                       <div className="flex items-center gap-2 mb-2 text-xs text-gray-500">
                         <span>{formatDate(post._created_at)}</span>
+                        {post.category_uuid === 'cat-job-seeking' && post.employment_type && (
+                          <span className="font-semibold text-blue-600">
+                            {employmentTypeLabels[post.employment_type] || post.employment_type}
+                          </span>
+                        )}
                         {post.post_type === 'free' && post.price && (
                           <span className="font-semibold text-green-600">
-                            {post.price}
+                            {post.price} SEK
                           </span>
                         )}
                         {post.post_type === 'event' && post.event_date_readable && (
