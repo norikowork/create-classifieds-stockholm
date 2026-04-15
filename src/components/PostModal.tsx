@@ -12,7 +12,7 @@ import db from '@/lib/shared/kliv-database';
 import content from '@/lib/shared/kliv-content';
 import auth from '@/lib/shared/kliv-auth';
 import { useToast } from '@/hooks/use-toast';
-import { ShoppingBag, Search, Briefcase, User, Trash2, Package, MapPin, Mail, Phone, Image as ImageIcon, X } from 'lucide-react';
+import { ShoppingBag, Search, Briefcase, User, Trash2, Package, MapPin, Mail, Phone, Image as ImageIcon, X, DollarSign } from 'lucide-react';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
 
@@ -43,7 +43,7 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
     description: '',
     category_uuid: '',
     subcategory_uuid: '',
-    post_type: 'free',
+    post_type: '',
     price: '',
     location_uuid: '',
     postal_code: '',
@@ -433,46 +433,6 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
 
         <form onSubmit={handleSubmit} className="space-y-6">
           
-          {/* 投稿タイプ - イベント以外のみ表示 */}
-          {formData.category_uuid !== 'cat-events' && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Package className="w-5 h-5" />
-                  投稿タイプ *
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <RadioGroup 
-                  value={formData.post_type} 
-                  onValueChange={(value) => handleInputChange('post_type', value)}
-                  className="flex gap-3"
-                >
-                  <div className="flex-1">
-                    <RadioGroupItem value="free" id="free" className="peer sr-only" />
-                    <Label 
-                      htmlFor="free" 
-                      className="flex flex-col items-center justify-center p-4 border-2 rounded-lg cursor-pointer transition-all peer-data-[state=checked]:border-blue-500 peer-data-[state=checked]:bg-blue-50 hover:border-gray-300"
-                    >
-                      <span className="font-medium">無料</span>
-                      <span className="text-xs text-gray-500 mt-1">Free</span>
-                    </Label>
-                  </div>
-                  <div className="flex-1">
-                    <RadioGroupItem value="paid" id="paid" className="peer sr-only" />
-                    <Label 
-                      htmlFor="paid" 
-                      className="flex flex-col items-center justify-center p-4 border-2 rounded-lg cursor-pointer transition-all peer-data-[state=checked]:border-blue-500 peer-data-[state=checked]:bg-blue-50 hover:border-gray-300"
-                    >
-                      <span className="font-medium">有料</span>
-                      <span className="text-xs text-gray-500 mt-1">Paid</span>
-                    </Label>
-                  </div>
-                </RadioGroup>
-              </CardContent>
-            </Card>
-          )}
-
           {/* カテゴリーと地域 */}
           <Card>
             <CardHeader>
@@ -563,6 +523,28 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
             </CardContent>
           </Card>
 
+          {/* 価格 - 全てのカテゴリーで表示 */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <DollarSign className="w-5 h-5" />
+                価格
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <Label htmlFor="price">価格（無料の場合は「無料」と入力）</Label>
+                <Input
+                  id="price"
+                  value={formData.price}
+                  onChange={(e) => handleInputChange('price', e.target.value)}
+                  placeholder="英数字で入力してください（例：500 SEK、無料）"
+                  className="text-base"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
           {/* タイトルと説明 */}
           <Card>
             <CardHeader>
@@ -623,17 +605,6 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="price">価格 *</Label>
-                  <Input
-                    id="price"
-                    value={formData.price}
-                    onChange={(e) => handleInputChange('price', e.target.value)}
-                    placeholder="例：500 SEK"
-                    required
-                  />
-                </div>
-                
                 <div className="space-y-2">
                   <Label htmlFor="condition">コンディション *</Label>
                   <Select 

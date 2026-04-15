@@ -599,7 +599,7 @@ const PostDetail = () => {
                           {getCategoryName(post.category_uuid)}
                         </Badge>
                       )}
-                      {post.price && post.post_type !== 'event' && (
+                      {post.post_type === 'free' && post.price && (
                         <span className="text-green-600 font-semibold text-base sm:text-lg">
                           {post.price}
                         </span>

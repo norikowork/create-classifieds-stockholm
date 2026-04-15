@@ -62,7 +62,21 @@ const Index = () => {
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [priceSort, setPriceSort] = useState<'none' | 'asc' | 'desc'>('none');
   const postsPerPage = 20; // Posts per page
+
+  // Post type labels
+  const postTypeLabels: Record<string, string> = {
+    'free': '無料',
+    'paid': '有料',
+    'job_seeking': '仕事探し',
+    'housing': '住居',
+    'event': 'イベント',
+    'services': 'サービス',
+    'for_sale': '販売',
+    'wanted': '探しています',
+    'bulletin': '掲示板'
+  };
 
   useEffect(() => {
     loadData();
@@ -656,20 +670,14 @@ const Index = () => {
                     <div className="flex-1">
                       <CardTitle className="text-lg line-clamp-2">{post.title}</CardTitle>
                       <CardDescription className="mt-1">
-                        <Badge 
-                          variant="secondary" 
-                          className="text-gray-600"
-                        >
-                          {postTypeLabels[post.post_type]}
-                        </Badge>
                         {/* Date and Price row */}
                         <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
                           <span>{formatDate(post._created_at)}</span>
-                          {post.price ? (
+                          {post.post_type === 'free' && post.price && (
                             <span className="font-semibold text-green-600">
                               {post.price}
                             </span>
-                          ) : null}
+                          )}
                           {post.post_type === 'event' && post.event_date_readable && (
                             <span className="font-semibold text-purple-600">
                               📅 {post.event_date_readable}
@@ -835,11 +843,11 @@ const Index = () => {
                       {/* Date and Price row */}
                       <div className="flex items-center gap-2 mb-2 text-xs text-gray-500">
                         <span>{formatDate(post._created_at)}</span>
-                        {post.price ? (
+                        {post.post_type === 'free' && post.price && (
                           <span className="font-semibold text-green-600">
                             {post.price}
                           </span>
-                        ) : null}
+                        )}
                         {post.post_type === 'event' && post.event_date_readable && (
                           <span className="font-semibold text-purple-600">
                             📅 {post.event_date_readable}
