@@ -41,6 +41,7 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
   const [categories, setCategories] = useState([]);
   const [locations, setLocations] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
+  const [selectedCounty, setSelectedCounty] = useState('');
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     title: '',
@@ -148,6 +149,14 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
       setFormData(newFormData);
       const parsedImages = editingPost.images ? (typeof editingPost.images === 'string' ? JSON.parse(editingPost.images) : editingPost.images) : [];
       setImageUrls(parsedImages);
+
+      // Set selectedCounty from editingPost's location
+      if (editingPost.location_uuid || editingPost.location) {
+        const location = locations.find((loc: any) => loc.uuid === (editingPost.location_uuid || editingPost.location));
+        if (location) {
+          setSelectedCounty(location.county || 'Other');
+        }
+      }
     } else if (isOpen && !editingPost) {
       resetForm();
     }
@@ -198,6 +207,7 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
       email: user?.email || ''
     });
     setImageUrls([]);
+    setSelectedCounty('');
     setError('');
   };
 
@@ -237,6 +247,13 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
       // モーダルを閉じてフォーラムページに遷移
       onClose();
       navigate('/forum');
+      return;
+    }
+
+    // County選択時にlocation_uuidをクリア
+    if (field === 'selectedCounty') {
+      setSelectedCounty(value);
+      setFormData(prev => ({ ...prev, location_uuid: '' }));
       return;
     }
 
@@ -521,23 +538,54 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
                 )}
 
                 <div className="space-y-2">
-                  <Label htmlFor="location">地域 *</Label>
+                  <Label htmlFor="county">エリア（地域） *</Label>
                   <Select 
-                    value={formData.location_uuid} 
-                    onValueChange={(value) => handleInputChange('location_uuid', value)}
+                    value={selectedCounty} 
+                    onValueChange={(value) => handleInputChange('selectedCounty', value)}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="選択してください" />
+                      <SelectValue placeholder="エリアを選択してください" />
                     </SelectTrigger>
                     <SelectContent>
-                      {locations.map((location) => (
-                        <SelectItem key={location.uuid} value={location.uuid}>
-                          {location.name_ja || location.name_en}
-                        </SelectItem>
-                      ))}
+                      {Array.from(new Set(locations.map((loc: any) => loc.county || 'Other')))
+                        .sort((a, b) => {
+                          // Otherを最後に
+                          if (a === 'Other') return 1;
+                          if (b === 'Other') return -1;
+                          return a.localeCompare(b);
+                        })
+                        .map((county) => (
+                          <SelectItem key={county} value={county}>
+                            {county}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 </div>
+
+                {selectedCounty && (
+                  <div className="space-y-2">
+                    <Label htmlFor="location">地域（町名） *</Label>
+                    <Select 
+                      value={formData.location_uuid} 
+                      onValueChange={(value) => handleInputChange('location_uuid', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="地域を選択してください" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {locations
+                          .filter((loc: any) => (loc.county || 'Other') === selectedCounty)
+                          .sort((a: any, b: any) => (a.name_ja || a.name_en).localeCompare(b.name_ja || b.name_en))
+                          .map((location) => (
+                            <SelectItem key={location.uuid} value={location.uuid}>
+                              {location.name_ja || location.name_en}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
