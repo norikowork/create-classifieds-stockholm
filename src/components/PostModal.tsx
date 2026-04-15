@@ -32,6 +32,64 @@ const categoryIcons = {
   'cat-job-seeking': User
 };
 
+const countyNameMap: Record<string, string> = {
+  'Stockholm': 'ストックホルム',
+  'Uppsala': 'ウプサラ',
+  'Södermanland': 'セーデルマンランド',
+  'Östergötland': 'エステルイェータランド',
+  'Jönköping': 'ヨンシェーピング',
+  'Kronoberg': 'クルノベリ',
+  'Kalmar': 'カルマル',
+  'Gotland': 'ゴットランド',
+  'Blekinge': 'ブレキンゲ',
+  'Skåne': 'スコーネ',
+  'Halland': 'ハッランド',
+  'Västra Götaland': 'ヴェストラ・イェータランド',
+  'Värmland': 'ヴェルムランド',
+  'Örebro': 'エーレブルー',
+  'Västmanland': 'ヴェストマンランド',
+  'Dalarna': 'ダルナ',
+  'Gävleborg': 'イェヴレボリ',
+  'Västernorrland': 'ヴェステルノールランド',
+  'Jämtland': 'イェムトランド',
+  'Västerbotten': 'ヴェステルボッテン',
+  'Norrbotten': 'ノールボッテン',
+  'Other': 'その他'
+};
+
+const getCountyNameWithKatakana = (county: string) => {
+  return countyNameMap[county] ? `${county} (${countyNameMap[county]})` : county;
+};
+
+const getMunicipalityNameWithKatakana = (municipality: string, county: string) => {
+  const municipalNameMap: Record<string, string> = {
+    'Stockholm': 'ストックホルム',
+    'Solna': 'ソルナ',
+    'Uppsala': 'ウプサラ',
+    'Malmö': 'マルメ',
+    'Göteborg': 'ヨーテボリ',
+    'Lund': 'ルンド',
+    'Linköping': 'リンシェーピング',
+    'Norrköping': 'ノルシェーピング',
+    'Örebro': 'エーレブルー',
+    'Västerås': 'ヴェステロース',
+    'Helsingborg': 'ヘルシンボリ',
+    'Jönköping': 'ヨンシェーピング',
+    'Norrköping': 'ノルシェーピング',
+    'Umeå': 'ウメオ',
+    'Luleå': 'ルレオ',
+    'Östersund': 'エステルスンド',
+    'Sundsvall': 'スンツヴァル',
+    'Västerås': 'ヴェステロース',
+    'Örebro': 'エーレブルー'
+  };
+  
+  if (municipalNameMap[municipality]) {
+    return `${municipality} (${municipalNameMap[municipality]})`;
+  }
+  return municipality;
+};
+
 export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }: PostModalProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -41,7 +99,6 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
   const [categories, setCategories] = useState([]);
   const [locations, setLocations] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
-  const [selectedArea, setSelectedArea] = useState('');
   const [selectedCounty, setSelectedCounty] = useState('');
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [formData, setFormData] = useState({
@@ -151,11 +208,10 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
       const parsedImages = editingPost.images ? (typeof editingPost.images === 'string' ? JSON.parse(editingPost.images) : editingPost.images) : [];
       setImageUrls(parsedImages);
 
-      // Set selectedArea and selectedCounty from editingPost's location
+      // Set selectedCounty from editingPost's location
       if (editingPost.location_uuid || editingPost.location) {
         const location = locations.find((loc: any) => loc.uuid === (editingPost.location_uuid || editingPost.location));
         if (location) {
-          setSelectedArea(location.area || '');
           setSelectedCounty(location.county || '');
         }
       }
@@ -209,7 +265,6 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
       email: user?.email || ''
     });
     setImageUrls([]);
-    setSelectedArea('');
     setSelectedCounty('');
     setError('');
   };
@@ -250,14 +305,6 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
       // モーダルを閉じてフォーラムページに遷移
       onClose();
       navigate('/forum');
-      return;
-    }
-
-    // Area選択時にCountyとMunicipalityをクリア
-    if (field === 'selectedArea') {
-      setSelectedArea(value);
-      setSelectedCounty('');
-      setFormData(prev => ({ ...prev, location_uuid: '' }));
       return;
     }
 
@@ -548,59 +595,29 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
                   </div>
                 )}
 
-                {/* 3階層地域選択: Area → County → Municipality */}
+                {/* 2階層地域選択: County → Municipality */}
                 <div className="space-y-2">
-                  <Label htmlFor="area">エリア（地域） *</Label>
+                  <Label htmlFor="county">県 *</Label>
                   <Select 
-                    value={selectedArea} 
-                    onValueChange={(value) => handleInputChange('selectedArea', value)}
+                    value={selectedCounty} 
+                    onValueChange={(value) => handleInputChange('selectedCounty', value)}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="エリアを選択してください" />
+                      <SelectValue placeholder="県を選択してください" />
                     </SelectTrigger>
                     <SelectContent>
-                      {Array.from(new Set(locations.map((loc: any) => loc.area || 'Other')))
+                      {Array.from(new Set(locations.map((loc: any) => loc.county)))
                         .sort()
-                        .map((area) => (
-                          <SelectItem key={area} value={area}>
-                            {area === 'gotaland' ? 'Götaland' : 
-                             area === 'svealand' ? 'Svealand' : 
-                             area === 'norrland' ? 'Norrland' : 
-                             area === 'Other' ? 'Övrigt' : area}
+                        .map((county) => (
+                          <SelectItem key={county} value={county}>
+                            {getCountyNameWithKatakana(county)}
                           </SelectItem>
                         ))}
                     </SelectContent>
                   </Select>
                 </div>
 
-                {selectedArea && (
-                  <div className="space-y-2">
-                    <Label htmlFor="county">県 *</Label>
-                    <Select 
-                      value={selectedCounty} 
-                      onValueChange={(value) => handleInputChange('selectedCounty', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="県を選択してください" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Array.from(new Set(
-                          locations
-                            .filter((loc: any) => loc.area === selectedArea)
-                            .map((loc: any) => loc.county)
-                        ))
-                          .sort()
-                          .map((county) => (
-                            <SelectItem key={county} value={county}>
-                              {county}
-                            </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-
-                {selectedArea && selectedCounty && (
+                {selectedCounty && (
                   <div className="space-y-2">
                     <Label htmlFor="location">市町村 *</Label>
                     <Select 
@@ -612,17 +629,18 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
                       </SelectTrigger>
                       <SelectContent>
                         {locations
-                          .filter((loc: any) => loc.area === selectedArea && loc.county === selectedCounty)
+                          .filter((loc: any) => loc.county === selectedCounty)
                           .sort((a: any, b: any) => (a.name_en || a.name_ja).localeCompare(b.name_en || b.name_ja))
                           .map((location) => (
                             <SelectItem key={location.uuid} value={location.uuid}>
-                              {location.name_en || location.name_ja}
+                              {getMunicipalityNameWithKatakana(location.name_en, location.county)}
                             </SelectItem>
                           ))}
                       </SelectContent>
                     </Select>
                   </div>
                 )}
+
               </div>
 
               <div className="space-y-2">
@@ -1273,6 +1291,7 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
               variant="outline"
               onClick={onClose}
               size="lg"
+
             >
               キャンセル
             </Button>
@@ -1289,4 +1308,4 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
       </DialogContent>
     </Dialog>
   );
-};
+};export default PostModal;
