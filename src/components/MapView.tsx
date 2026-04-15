@@ -37,10 +37,10 @@ interface MapViewProps {
   formatDate?: (timestamp: number) => string;
 }
 
-// Stockholm area center coordinates - optimized for performance
-const STOCKHOLM_CENTER: [number, number] = [59.3293, 18.0686];
+// Sweden center coordinates - centered to show all of Sweden
+const SWEDEN_CENTER: [number, number] = [60.0, 15.0];  // Center of Sweden
 const SWEDEN_BOUNDS: [[number, number], [number, number]] = [[55.0, 10.5], [69.5, 24.0]];
-const DEFAULT_ZOOM = 10;
+const DEFAULT_ZOOM = 5;  // Lower zoom to show more of Sweden
 
 // Cache for popup content to avoid recreating
 const popupContentCache = new Map<string, string>();
@@ -197,8 +197,8 @@ export default function MapView({ posts, locations, onPostClick, selectedPostId,
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
 
-    // Initialize map centered on Stockholm (disable default attribution to remove Leaflet credit)
-    const map = L.map(mapRef.current, { attributionControl: false }).setView(STOCKHOLM_CENTER, DEFAULT_ZOOM);
+    // Initialize map centered on Sweden (disable default attribution to remove Leaflet credit)
+    const map = L.map(mapRef.current, { attributionControl: false }).setView(SWEDEN_CENTER, DEFAULT_ZOOM);
 
     // Add tile layer (OpenStreetMap)
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -277,7 +277,7 @@ export default function MapView({ posts, locations, onPostClick, selectedPostId,
 
     // Reset view if no posts
     if (postsWithLocation.length === 0) {
-      map.setView(STOCKHOLM_CENTER, DEFAULT_ZOOM);
+      map.setView(SWEDEN_CENTER, DEFAULT_ZOOM);
       return;
     }
 
@@ -294,7 +294,7 @@ export default function MapView({ posts, locations, onPostClick, selectedPostId,
       
       {/* Location info */}
       <div className="absolute top-4 right-4 bg-white rounded-lg shadow-md px-3 py-2 text-xs z-[1000]">
-        <div className="font-semibold text-gray-700 whitespace-nowrap">📍 ストックホルム</div>
+        <div className="font-semibold text-gray-700 whitespace-nowrap">📍 スウェーデン</div>
         <div className="text-gray-500 whitespace-nowrap">
           {postsWithLocation.length}件
           {totalLocationCount > 50 && ' (最大50件)'}
