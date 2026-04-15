@@ -11,7 +11,7 @@ import auth from '@/lib/shared/kliv-auth';
 import { AuthModal } from '@/components/AuthModal';
 import { PostModal } from '@/components/PostModal';
 import Footer from '@/components/Footer';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import MapView from '@/components/MapView';
 
 const categoryIcons = {
@@ -47,6 +47,7 @@ type ViewMode = 'grid' | 'list' | 'images' | 'map';
 
 const Index = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [categories, setCategories] = useState([]);
   const [locations, setLocations] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
@@ -81,6 +82,14 @@ const Index = () => {
   useEffect(() => {
     loadData();
     checkAuth();
+  }, []);
+
+  // Read category from URL params on mount
+  useEffect(() => {
+    const categoryParam = searchParams.get('category');
+    if (categoryParam) {
+      setSelectedCategory(categoryParam);
+    }
   }, []);
 
   // Update posts when allPosts changes (for pagination)
@@ -206,6 +215,12 @@ const Index = () => {
       return;
     }
     setSelectedCategory(categoryUuid);
+    // Update URL params
+    if (categoryUuid) {
+      setSearchParams({ category: categoryUuid });
+    } else {
+      setSearchParams({});
+    }
     // イベントカテゴリー以外が選択されたら月選択をクリア
     if (categoryUuid !== 'cat-events') {
       setSelectedMonth('');

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,12 +33,15 @@ const categoryIcons = {
 };
 
 export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }: PostModalProps) => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [categories, setCategories] = useState([]);
   const [locations, setLocations] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -82,7 +86,6 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
     email: user?.email || ''
   });
   const [error, setError] = useState('');
-  const { toast } = useToast();
 
   const isAdmin = user?.isPrimaryOrg || user?.userMetadata?.is_admin;
 
@@ -229,6 +232,14 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
   };
 
   const handleInputChange = (field: string, value: string) => {
+    // 掲示板カテゴリーが選択されたらフォーラムページにリダイレクト
+    if (field === 'category_uuid' && value === 'cat-bulletin') {
+      // モーダルを閉じてフォーラムページに遷移
+      onClose();
+      navigate('/forum');
+      return;
+    }
+
     setFormData(prev => ({ ...prev, [field]: value }));
     // Reset subcategory when category changes
     if (field === 'category_uuid') {
@@ -542,52 +553,6 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
             </CardContent>
           </Card>
 
-              {/* 価格 - 仕事探し以外のカテゴリーで表示 */}
-              {formData.category_uuid !== 'cat-job-seeking' && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                      <DollarSign className="w-5 h-5" />
-                      価格
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          id="is_free"
-                          checked={formData.price === '無料' || formData.price === '0'}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              handleInputChange('price', '無料');
-                            } else {
-                              handleInputChange('price', '');
-                            }
-                          }}
-                          className="w-4 h-4"
-                        />
-                        <Label htmlFor="is_free" className="cursor-pointer">無料</Label>
-                      </div>
-                      {formData.price !== '無料' && formData.price !== '0' && (
-                        <div className="flex items-center gap-2">
-                          <Input
-                            id="price"
-                            type="number"
-                            value={formData.price}
-                            onChange={(e) => handleInputChange('price', e.target.value)}
-                            placeholder="500"
-                            className="text-base flex-1"
-                            min="0"
-                          />
-                          <span className="text-gray-600 font-medium">SEK</span>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
           {/* タイトルと説明 */}
           <Card>
             <CardHeader>
@@ -637,6 +602,52 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
               </div>
             </CardContent>
           </Card>
+
+          {/* 価格 - 仕事探しと住居以外のカテゴリーで表示 */}
+          {formData.category_uuid !== 'cat-job-seeking' && formData.category_uuid !== 'cat-housing' && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <DollarSign className="w-5 h-5" />
+                  価格
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="is_free"
+                      checked={formData.price === '無料' || formData.price === '0'}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          handleInputChange('price', '無料');
+                        } else {
+                          handleInputChange('price', '');
+                        }
+                      }}
+                      className="w-4 h-4"
+                    />
+                    <Label htmlFor="is_free" className="cursor-pointer">無料</Label>
+                  </div>
+                  {formData.price !== '無料' && formData.price !== '0' && (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="price"
+                        type="number"
+                        value={formData.price}
+                        onChange={(e) => handleInputChange('price', e.target.value)}
+                        placeholder="500"
+                        className="text-base flex-1"
+                        min="0"
+                      />
+                      <span className="text-gray-600 font-medium">SEK</span>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* カテゴリ別詳細情報 */}
           {formData.category_uuid === 'cat-for-sale' && (
