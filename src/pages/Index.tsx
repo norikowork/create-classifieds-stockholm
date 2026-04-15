@@ -737,7 +737,6 @@ const Index = () => {
                     </div>
                   )}
                   <div className="flex justify-between items-center text-xs text-gray-500">
-                    <span>{formatDate(post._created_at)}</span>
                     <div className="flex gap-2">
                       {post.employment_type && (
                         <span className="text-xs text-gray-600">
@@ -754,8 +753,17 @@ const Index = () => {
                           📅 {post.event_date_readable}
                         </span>
                       )}
-                      {post.price && <span className="font-semibold text-green-600">{post.price}</span>}
+                      {post.price ? (
+                        <span className="font-semibold text-green-600">
+                          {post.post_type === 'free' ? (
+                            <><span className="line-through opacity-50">{post.price}</span> 0kr</>
+                          ) : (
+                            post.price
+                          )}
+                        </span>
+                      ) : null}
                     </div>
+                    <span>{formatDate(post._created_at)}</span>
                   </div>
                   <div className="mt-4 pt-4 border-t">
                     <Link to={`/post/${post._row_id}`}>
@@ -877,13 +885,21 @@ const Index = () => {
                             <span className="font-medium">経験:</span> {experienceLevelLabels[post.experience_level] || post.experience_level}
                           </span>
                         )}
-                        <span>{formatDate(post._created_at)}</span>
+                        {post.price ? (
+                          <span className="font-semibold text-green-600">
+                            {post.post_type === 'free' ? (
+                              <><span className="line-through opacity-50">{post.price}</span> 0kr</>
+                            ) : (
+                              post.price
+                            )}
+                          </span>
+                        ) : null}
                         {post.post_type === 'event' && post.event_date_readable && (
                           <span className="font-semibold text-purple-600">
                             📅 {post.event_date_readable}
                           </span>
                         )}
-                        {post.price && <span className="font-semibold text-green-600">{post.price}</span>}
+                        <span>{formatDate(post._created_at)}</span>
                       </div>
                     </div>
                     {/* Action */}
