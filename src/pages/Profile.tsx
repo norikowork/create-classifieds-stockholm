@@ -469,11 +469,34 @@ const Profile = () => {
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <Button variant="ghost" size="sm" className="h-8" onClick={() => navigate('/')}>
-              ← 戻る
-            </Button>
-            <h1 className="text-lg sm:text-xl font-bold text-gray-900">プロフィール</h1>
-            <div className="w-12 sm:w-16"></div>
+            <Link to="/" className="flex items-center space-x-2 flex-shrink-0 hover:opacity-80 transition-opacity">
+              <img 
+                src="/content/templates/sverigejplogo.png" 
+                alt="Sverige.JP Logo"
+                className="h-10 w-10 sm:h-12 sm:w-12 object-contain flex-shrink-0"
+                style={{ width: '48px', height: '48px' }}
+              />
+              <div className="flex flex-col">
+                <h1 className="text-base sm:text-xl font-bold text-gray-900 hidden sm:block">Sverige.JP</h1>
+                <h1 className="text-base font-bold text-gray-900 sm:hidden">Sverige.JP</h1>
+                <p className="text-xs text-gray-600 hidden md:block">スウェーデン日本コミュニティ</p>
+              </div>
+            </Link>
+            <div className="flex items-center gap-2">
+              {user ? (
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={handleSignOut}>
+                    ログアウト
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => navigate('/')}>
+                    ホームに戻る
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </header>

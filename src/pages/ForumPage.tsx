@@ -82,10 +82,16 @@ export default function ForumPage() {
       // Load reply counts
       const counts: Record<number, number> = {};
       for (const topic of data) {
-        const count = await db.count('forum_replies', {
-          topic_id: `eq.${topic._row_id}`,
-        });
-        counts[topic._row_id] = count;
+        const topicId = topic._row_id;
+        try {
+          // Get raw data and count locally
+          const replyData = await db.query('forum_replies', {
+            topic_id: `eq.${topicId}`,
+          });
+          counts[topicId] = Array.isArray(replyData) ? replyData.length : 0;
+        } catch (e) {
+          counts[topicId] = 0;
+        }
       }
       setReplyCounts(counts);
 

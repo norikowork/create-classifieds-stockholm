@@ -423,13 +423,12 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
     post_type: '',
     price: '',
     location_uuid: '',
-    postal_code: '',
     // Detailed address fields
     show_detailed_address: false,
+    county: '',
     street: '',
-    cross_street: '',
     city: '',
-    // For Sale fields
+    zip_code: '',
     brand: '',
     model_name: '',
     size_dimensions: '',
@@ -1485,34 +1484,48 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
                 {formData.show_detailed_address && (
                   <div className="space-y-4 mt-4 p-4 bg-gray-50 rounded-lg">
                     <div className="space-y-2">
+                      <Label htmlFor="county">県</Label>
+                      <Select 
+                        value={formData.county || ''} 
+                        onValueChange={(value) => handleInputChange('county', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="県を選択" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from(new Set(locations.map((loc: any) => loc.county)))
+                            .sort((a, b) => {
+                              if (a === 'Other') return 1;
+                              if (b === 'Other') return -1;
+                              return a.localeCompare(b);
+                            })
+                            .map((county) => (
+                              <SelectItem key={county} value={county}>
+                                {getCountyNameWithKatakana(county)}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="city">市町村</Label>
+                      <Input
+                        id="city"
+                        value={formData.city}
+                        onChange={(e) => handleInputChange('city', e.target.value)}
+                        placeholder="例：Stockholm"
+                        className="text-base"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
                       <Label htmlFor="street">番地・ストリート名</Label>
                       <Input
                         id="street"
                         value={formData.street}
                         onChange={(e) => handleInputChange('street', e.target.value)}
                         placeholder="例：Kungsgatan 1"
-                        className="text-base"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="cross_street">交差点・目標</Label>
-                      <Input
-                        id="cross_street"
-                        value={formData.cross_street}
-                        onChange={(e) => handleInputChange('cross_street', e.target.value)}
-                        placeholder="例：Sergels Torgの近く"
-                        className="text-base"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="city">都市・地域</Label>
-                      <Input
-                        id="city"
-                        value={formData.city}
-                        onChange={(e) => handleInputChange('city', e.target.value)}
-                        placeholder="例：ストックホルム市"
                         className="text-base"
                       />
                     </div>

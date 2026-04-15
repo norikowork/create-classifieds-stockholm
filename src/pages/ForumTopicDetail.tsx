@@ -74,10 +74,12 @@ export default function ForumTopicDetail() {
   const loadReplies = async () => {
     if (!id) return;
     try {
+      const topicId = parseInt(id);
       const data = await db.query('forum_replies', {
-        topic_id: `eq.${id}`,
+        topic_id: `eq.${topicId}`,
         order: '_created_at.asc',
       });
+      console.log('Loaded replies for topic', topicId, ':', data);
       setReplies(data);
     } catch (error) {
       console.error('Failed to load replies:', error);
@@ -99,8 +101,9 @@ export default function ForumTopicDetail() {
 
     setIsSubmitting(true);
     try {
+      const topicId = parseInt(id!);
       await db.insert('forum_replies', {
-        topic_id: parseInt(id!),
+        topic_id: topicId,
         body: replyBody.trim(),
       });
       
