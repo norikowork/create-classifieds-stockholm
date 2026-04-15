@@ -106,13 +106,10 @@ export default function MapView({ posts, locations, onPostClick, selectedPostId,
 
   // Memoize posts with valid locations to avoid recalculating
   const postsWithLocation = useMemo(() => {
-    const validPosts = posts.filter(post => {
+    return posts.filter(post => {
       const location = locations.find(l => l.uuid === post.location_uuid);
-      console.log('Post:', post._row_id, 'Title:', post.title, 'Location UUID:', post.location_uuid, 'Found location:', location);
       return location && location.latitude && location.longitude;
     }).slice(0, 50);
-    console.log('Valid posts with locations:', validPosts.length);
-    return validPosts;
   }, [posts, locations]);
 
   // Memoize total count for display
