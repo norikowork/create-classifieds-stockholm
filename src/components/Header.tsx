@@ -51,7 +51,18 @@ const Header = () => {
                   src="/content/templates/sverigejplogo.png" 
                   alt="Sverige.JP Logo"
                   className="h-full w-full object-contain"
-                  style={{ width: '48px', height: '48px' }}
+                  onLoad={() => console.log('Header logo loaded successfully')}
+                  onError={(e) => {
+                    console.error('Header logo failed to load:', e.currentTarget.src);
+                    // Try with cache buster
+                    const img = e.currentTarget;
+                    if (!img.dataset.retried) {
+                      img.dataset.retried = "1";
+                      setTimeout(() => {
+                        img.src = "/content/templates/sverigejplogo.png?" + Date.now();
+                      }, 100);
+                    }
+                  }}
                 />
               </div>
               <div className="flex flex-col">
