@@ -84,13 +84,13 @@ const Index = () => {
     checkAuth();
   }, []);
 
-  // Read category from URL params on mount
+  // Read category from URL params on mount and when URL changes
   useEffect(() => {
     const categoryParam = searchParams.get('category');
     if (categoryParam) {
       setSelectedCategory(categoryParam);
     }
-  }, []);
+  }, [searchParams]);
 
   // Update posts when allPosts changes (for pagination)
   useEffect(() => {
@@ -733,7 +733,13 @@ const Index = () => {
                     {post.description}
                   </p>
                   {post.category_uuid && (
-                    <Link to={`/?category=${post.category_uuid}`} className="flex items-center text-xs text-blue-600 mb-2 hover:underline">
+                    <button
+                      onClick={() => {
+                        setSelectedCategory(post.category_uuid);
+                        setSearchParams({ category: post.category_uuid });
+                      }}
+                      className="flex items-center text-xs text-blue-600 mb-2 hover:underline"
+                    >
                       <Badge variant="secondary" className="text-xs">
                         {getCategoryName(post.category_uuid)}
                       </Badge>
@@ -742,7 +748,7 @@ const Index = () => {
                           {' > '}{getSubcategoryName(post.subcategory_uuid)}
                         </span>
                       )}
-                    </Link>
+                    </button>
                   )}
                   <div className="flex items-center text-xs text-gray-500 mb-2">
                     <User className="w-3 h-3 mr-1" />
@@ -868,14 +874,20 @@ const Index = () => {
                       </p>
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
                         {post.category_uuid && (
-                          <Link to={`/?category=${post.category_uuid}`} className="flex items-center text-blue-700 hover:underline">
+                          <button
+                            onClick={() => {
+                              setSelectedCategory(post.category_uuid);
+                              setSearchParams({ category: post.category_uuid });
+                            }}
+                            className="flex items-center text-blue-700 hover:underline"
+                          >
                             <span className="font-medium">{getCategoryName(post.category_uuid)}</span>
                             {post.subcategory_uuid && (
                               <span className="ml-1">
                                 {' > '}{getSubcategoryName(post.subcategory_uuid)}
                               </span>
                             )}
-                          </Link>
+                          </button>
                         )}
                         <span className="flex items-center">
                           <User className="w-3 h-3 mr-1" />
