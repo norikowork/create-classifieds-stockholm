@@ -47,7 +47,7 @@ const Header = () => {
           <div className="flex justify-between items-center h-16">
             <Link to="/" className="flex items-center space-x-2 flex-shrink-0 hover:opacity-80 transition-opacity">
               <img 
-                src="/content/templates/sverigejplogo.png" 
+                src="/content/templates/sverigejplogo.png?v=2" 
                 alt="Sverige.JP Logo"
                 className="h-10 w-10 sm:h-12 sm:w-12 object-contain"
                 style={{ width: '48px', height: '48px' }}
