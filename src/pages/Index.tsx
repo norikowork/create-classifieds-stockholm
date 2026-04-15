@@ -799,26 +799,28 @@ const Index = () => {
               <Card key={post._row_id} className="hover:shadow-lg transition-shadow">
                 <CardContent className="p-3">
                   <div className="flex gap-3">
-                    {/* Thumbnail */}
-                    <div className="flex-shrink-0">
-                      {post.images && post.images.length > 0 ? (
-                        <Link to={`/post/${post._row_id}`}>
-                          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded overflow-hidden bg-gray-100">
-                            <img
-                              src={post.images[0]}
-                              alt={post.title}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                        </Link>
-                      ) : (
-                        <Link to={`/post/${post._row_id}`}>
-                          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded overflow-hidden bg-gray-100 flex items-center justify-center">
-                            <ImageIcon className="w-8 h-8 text-gray-400" />
-                          </div>
-                        </Link>
-                      )}
-                    </div>
+                        {/* Thumbnail */}
+                        <div className="flex-shrink-0">
+                          <Link to={`/post/${post._row_id}`}>
+                            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded overflow-hidden bg-gray-100">
+                              <img
+                                src={
+                                  post.images && Array.isArray(post.images) && post.images.length > 0 && post.images[0]
+                                    ? post.images[0]
+                                    : '/content/templates/sverige_blank.png'
+                                }
+                                alt={post.title}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  if (target.src !== '/content/templates/sverige_blank.png') {
+                                    target.src = '/content/templates/sverige_blank.png';
+                                  }
+                                }}
+                              />
+                            </div>
+                          </Link>
+                        </div>
                     {/* Content */}
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-start gap-2 mb-1">
