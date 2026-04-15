@@ -686,14 +686,20 @@ const Index = () => {
                         <div className="relative w-full aspect-video bg-gray-100 rounded overflow-hidden">
                           <img 
                             src={
-                              post.images && post.images.length > 0 
+                              post.images && Array.isArray(post.images) && post.images.length > 0 
                                 ? post.images[0] 
                                 : '/content/templates/sverige_blank.png'
                             } 
                             alt="投稿画像"
                             className="w-full h-full object-cover"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              if (target.src !== '/content/templates/sverige_blank.png') {
+                                target.src = '/content/templates/sverige_blank.png';
+                              }
+                            }}
                           />
-                          {post.images && post.images.length > 1 && (
+                          {post.images && Array.isArray(post.images) && post.images.length > 1 && (
                             <div className="absolute top-2 right-2 bg-black/60 text-white px-2 py-1 rounded text-xs">
                               {post.images.length}枚の画像
                             </div>
