@@ -46,13 +46,14 @@ const Header = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <Link to="/" className="flex items-center space-x-2 flex-shrink-0 hover:opacity-80 transition-opacity">
-              <img 
-                src="/content/templates/sverigejplogo.png" 
-                alt="Sverige.JP Logo"
-                className="h-10 w-10 sm:h-12 sm:w-12 object-contain flex-shrink-0"
-                style={{ width: '48px', height: '48px' }}
-                key="header-logo"
-              />
+              <div className="h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0 bg-blue-100 rounded-full flex items-center justify-center">
+                <img 
+                  src="/content/templates/sverigejplogo.png" 
+                  alt="Sverige.JP Logo"
+                  className="h-full w-full object-contain"
+                  style={{ width: '48px', height: '48px' }}
+                />
+              </div>
               <div className="flex flex-col">
                 <h1 className="text-xl font-bold text-gray-900 hidden sm:block">Sverige.JP</h1>
                 <h1 className="text-base font-bold text-gray-900 sm:hidden">Sverige.JP</h1>
