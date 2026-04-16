@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Shield, Users, FileText, AlertTriangle, Ban, Check, X, Eye, Search, Filter, Trash, Plus, Edit } from 'lucide-react';
+import { Shield, Users, FileText, AlertTriangle, Ban, Check, X, Eye, Search, Filter, Trash, Plus, Edit, CheckCircle, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -124,10 +124,23 @@ const Admin = () => {
       users.forEach(user => {
         seenUserUuids.add(user.user_uuid);
         const profile = userProfiles.find(p => p.user_uuid === user.user_uuid);
+        
+        // metadataをパース
+        let metadata = {};
+        try {
+          if (user.metadata) {
+            metadata = typeof user.metadata === 'string' ? JSON.parse(user.metadata) : user.metadata;
+          }
+        } catch (e) {
+          metadata = {};
+        }
+        
         combinedUsers.push({
           ...user,
           display_name: profile?.display_name || user.first_name || user.email,
-          profile_exists: !!profile
+          profile_exists: !!profile,
+          user_metadata: metadata,
+          is_blocked: profile?.is_blocked || 0
         });
       });
       
@@ -136,15 +149,17 @@ const Admin = () => {
         if (!seenUserUuids.has(profile.user_uuid)) {
           combinedUsers.push({
             user_uuid: profile.user_uuid,
-            email: profile.display_name, // 認証SDKユーザーの場合、emailが保存されていない
+            email: '', // 認証SDKユーザーの場合、emailが保存されていない
             first_name: profile.display_name,
             last_name: '',
             _created_at: profile._created_at,
             _updated_at: profile._updated_at,
+            metadata: '{}',
             user_metadata: { blocked: profile.is_blocked === 1 },
             display_name: profile.display_name,
             profile_exists: true,
-            is_auth_sdk_user: true
+            is_auth_sdk_user: true,
+            is_blocked: profile.is_blocked || 0
           });
         }
       });
@@ -421,6 +436,9 @@ const Admin = () => {
       filtered = filtered.filter(user => user.user_metadata?.blocked || user.is_blocked === 1);
     } else if (userFilter === 'active') {
       filtered = filtered.filter(user => !user.user_metadata?.blocked && user.is_blocked !== 1);
+    } else if (userFilter === 'unverified') {
+      // 未承認ユーザー：認証SDKユーザーではなく、メールアドレスがないユーザー
+      filtered = filtered.filter(user => !user.is_auth_sdk_user && (!user.email || user.email === ''));
     }
     
     return filtered;
@@ -760,6 +778,7 @@ const Admin = () => {
                         <SelectItem value="all">すべて</SelectItem>
                         <SelectItem value="active">アクティブ</SelectItem>
                         <SelectItem value="blocked">ブロック済み</SelectItem>
+                        <SelectItem value="unverified">未承認</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -775,6 +794,18 @@ const Admin = () => {
                             <h3 className="font-semibold">
                               {userItem.display_name || userItem.first_name || userItem.email || '不明'}
                             </h3>
+                            {/* アカウント状態バッジ */}
+                            {userItem.is_auth_sdk_user || userItem.email ? (
+                              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                有効
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+                                <Clock className="h-3 w-3 mr-1" />
+                                未承認
+                              </Badge>
+                            )}
                             {(userItem.user_metadata?.blocked || userItem.is_blocked === 1) && (
                               <Badge variant="destructive">
                                 <Ban className="h-3 w-3 mr-1" />
