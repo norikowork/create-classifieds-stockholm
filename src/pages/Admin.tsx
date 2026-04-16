@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Shield, Users, FileText, AlertTriangle, Ban, Check, X, Eye, Search, Filter, Trash, Plus } from 'lucide-react';
+import { Shield, Users, FileText, AlertTriangle, Ban, Check, X, Eye, Search, Filter, Trash, Plus, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -58,6 +58,14 @@ const Admin = () => {
   const [categories, setCategories] = useState([]);
   const [newCategory, setNewCategory] = useState({ name: '', description: '' });
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+  const [userForm, setUserForm] = useState({
+    first_name: '',
+    last_name: '',
+    email: '',
+    enabled: true
+  });
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalPosts: 0,
@@ -416,6 +424,52 @@ const Admin = () => {
     }
   };
 
+  const handleEditUser = (userItem) => {
+    setEditingUser(userItem);
+    setUserForm({
+      first_name: userItem.first_name || '',
+      last_name: userItem.last_name || '',
+      email: userItem.email || '',
+      enabled: userItem.enabled !== false
+    });
+    setIsUserModalOpen(true);
+  };
+
+  const handleSaveUser = async () => {
+    try {
+      const metadata = editingUser.user_metadata || {};
+      await db.update('users',
+        { _row_id: `eq.${editingUser._row_id}` },
+        {
+          first_name: userForm.first_name,
+          last_name: userForm.last_name,
+          email: userForm.email,
+          enabled: userForm.enabled ? 1 : 0,
+          user_metadata: JSON.stringify({
+            ...metadata,
+            blocked: !userForm.enabled
+          })
+        }
+      );
+      
+      toast({
+        title: "ユーザー更新完了",
+        description: "ユーザー情報が更新されました",
+      });
+      
+      setIsUserModalOpen(false);
+      setEditingUser(null);
+      loadAdminData();
+    } catch (error) {
+      console.error('Error updating user:', error);
+      toast({
+        title: "エラー",
+        description: "ユーザーの更新に失敗しました",
+        variant: "destructive"
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -666,6 +720,13 @@ const Admin = () => {
                         <div className="flex space-x-2">
                           {userItem.email !== user?.email && (
                             <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEditUser(userItem)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
                               {userItem.user_metadata?.blocked ? (
                                 <Button
                                   variant="outline"
@@ -1002,6 +1063,62 @@ const Admin = () => {
                 </Button>
               </div>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* User Edit Modal */}
+        <Dialog open={isUserModalOpen} onOpenChange={setIsUserModalOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>ユーザー編集</DialogTitle>
+            </DialogHeader>
+            {editingUser && (
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="firstName">名前</Label>
+                  <Input
+                    id="firstName"
+                    value={userForm.first_name}
+                    onChange={(e) => setUserForm({...userForm, first_name: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="lastName">名字</Label>
+                  <Input
+                    id="lastName"
+                    value={userForm.last_name}
+                    onChange={(e) => setUserForm({...userForm, last_name: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="email">メールアドレス</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={userForm.email}
+                    onChange={(e) => setUserForm({...userForm, email: e.target.value})}
+                  />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="enabled"
+                    checked={userForm.enabled}
+                    onChange={(e) => setUserForm({...userForm, enabled: e.target.checked})}
+                    className="w-4 h-4"
+                  />
+                  <Label htmlFor="enabled">有効（ブロックされていない）</Label>
+                </div>
+                <div className="flex justify-end space-x-2">
+                  <Button variant="outline" onClick={() => setIsUserModalOpen(false)}>
+                    キャンセル
+                  </Button>
+                  <Button onClick={handleSaveUser}>
+                    保存
+                  </Button>
+                </div>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
       </main>
