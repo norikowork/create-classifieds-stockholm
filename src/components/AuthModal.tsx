@@ -82,26 +82,19 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) =>
 
     try {
       // 新規登録（自動サインインされる）
-      await auth.signUp(registerEmail, registerPassword, registerName);
+      const user = await auth.signUp(registerEmail, registerPassword, registerName);
       
-      // サインアウトしてメール認証を促す
-      await auth.signOut();
-      
-      // 確認メールを再送
-      await auth.resendActivation(registerEmail);
-      
-      // メール認証を促すメッセージを表示
-      toast({
-        title: "確認メールを送信しました",
-        description: `${registerEmail} に確認メールを送信しました。メール内のリンクをクリックして登録を完了してください。`,
-        className: "bg-yellow-50 border-yellow-200 text-yellow-900",
-      });
-      
-      // フォームをリセット
-      setRegisterEmail('');
-      setRegisterPassword('');
-      setRegisterName('');
+      onAuthSuccess(user);
       handleClose();
+      
+      toast({
+        title: "登録完了",
+        description: "アカウントが作成されました！ようこそ、Sverige.JPへ！",
+        className: "bg-green-50 border-green-200 text-green-900",
+      });
+
+      // Create profile in background after registration completes
+      ensureProfileExists(user);
       
     } catch (err: any) {
       setError(err.message || '登録に失敗しました');
