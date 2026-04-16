@@ -55,6 +55,7 @@ const Index = () => {
   const [allPosts, setAllPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
+  const [userProfile, setUserProfile] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('list');
@@ -208,13 +209,18 @@ const Index = () => {
       const currentUser = await auth.getUser();
       setUser(currentUser);
       
-      // Load user's profile to get their county
+      // Load user's profile to get their county and display name
       if (currentUser) {
         const profiles = await db.query('user_profiles', {
           user_uuid: `eq.${currentUser.userUuid}`
         });
-        if (profiles.length > 0 && profiles[0].county) {
-          setUserCounty(profiles[0].county);
+        if (profiles.length > 0) {
+          const profile = profiles[0];
+          if (profile.county) {
+            setUserCounty(profile.county);
+          }
+          // プロフィールをstateに保存してHeaderで使用
+          setUserProfile(profile);
         }
       }
     } catch (error) {
@@ -222,8 +228,23 @@ const Index = () => {
     }
   };
 
-  const handleAuthSuccess = (authUser: any) => {
+  const handleAuthSuccess = async (authUser: any) => {
     setUser(authUser);
+    
+    // Reload user profile to get latest display name
+    if (authUser) {
+      try {
+        const profiles = await db.query('user_profiles', {
+          user_uuid: `eq.${authUser.userUuid}`
+        });
+        if (profiles.length > 0) {
+          setUserProfile(profiles[0]);
+        }
+      } catch (error) {
+        console.error('Error loading user profile:', error);
+      }
+    }
+    
     loadData(); // Reload data to show user-specific content
   };
 
@@ -541,7 +562,7 @@ const Index = () => {
                 <div className="flex items-center gap-1 sm:gap-2 flex-wrap justify-end">
                   <User className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 flex-shrink-0" />
                   <span className="text-xs sm:text-sm text-gray-700 truncate max-w-[100px] sm:max-w-[150px]">
-                    {user.display_name || user.firstName || user.email?.split('@')[0]}
+                    {userProfile?.display_name || user.display_name || user.firstName || user.email?.split('@')[0]}
                   </span>
                   <Button variant="ghost" size="sm" className="h-8 text-xs px-2 sm:px-3" onClick={() => navigate('/profile')}>
                     <span className="hidden sm:inline">プロフィール</span>
