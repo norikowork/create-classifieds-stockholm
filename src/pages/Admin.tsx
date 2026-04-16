@@ -108,16 +108,58 @@ const Admin = () => {
 
   const loadAdminData = async () => {
     try {
-      const [users, posts, flagged, categoriesData] = await Promise.all([
+      const [users, posts, flagged, categoriesData, userProfiles] = await Promise.all([
         db.query('users', { _deleted: 'eq.0' }),
         db.query('posts', { _deleted: 'eq.0', order: '_created_at.desc' }),
         db.query('posts', { status: 'eq.flagged', order: '_created_at.desc' }),
-        db.query('categories', { _deleted: 'eq.0' })
+        db.query('categories', { _deleted: 'eq.0' }),
+        db.query('user_profiles', { _deleted: 'eq.0' })
       ]);
       
       setAllUsers(users);
-      setAllPosts(posts);
-      setFlaggedPosts(flagged);
+      
+      // Add creator display name to posts
+      const postsWithCreatorNames = posts.map(post => {
+        const creatorProfile = userProfiles.find(profile => profile.user_uuid === post._created_by);
+        const creatorUser = users.find(user => user.user_uuid === post._created_by);
+        let displayName = '不明';
+        
+        if (creatorProfile?.display_name) {
+          displayName = creatorProfile.display_name;
+        } else if (creatorUser?.first_name || creatorUser?.last_name) {
+          displayName = `${creatorUser.first_name || ''} ${creatorUser.last_name || ''}`.trim();
+        } else if (creatorUser?.email) {
+          displayName = creatorUser.email;
+        }
+        
+        return {
+          ...post,
+          creatorDisplayName: displayName
+        };
+      });
+      
+      // Add creator display name to flagged posts
+      const flaggedWithCreatorNames = flagged.map(post => {
+        const creatorProfile = userProfiles.find(profile => profile.user_uuid === post._created_by);
+        const creatorUser = users.find(user => user.user_uuid === post._created_by);
+        let displayName = '不明';
+        
+        if (creatorProfile?.display_name) {
+          displayName = creatorProfile.display_name;
+        } else if (creatorUser?.first_name || creatorUser?.last_name) {
+          displayName = `${creatorUser.first_name || ''} ${creatorUser.last_name || ''}`.trim();
+        } else if (creatorUser?.email) {
+          displayName = creatorUser.email;
+        }
+        
+        return {
+          ...post,
+          creatorDisplayName: displayName
+        };
+      });
+      
+      setAllPosts(postsWithCreatorNames);
+      setFlaggedPosts(flaggedWithCreatorNames);
       setCategories(categoriesData);
       
       // Calculate stats
@@ -607,7 +649,7 @@ const Admin = () => {
                               投稿ID: {post._row_id}
                             </Badge>
                             <Badge variant="outline">
-                              投稿者ID: {post._created_by?.substring(0, 8)}...
+                              投稿者: {post.creatorDisplayName || '不明'} (ID: {post._created_by?.substring(0, 8)}...)
                             </Badge>
                           </div>
                           <p className="text-xs text-gray-500">
@@ -837,7 +879,7 @@ const Admin = () => {
                               報告済み
                             </Badge>
                             <Badge variant="outline">
-                              投稿者ID: {post._created_by?.substring(0, 8)}...
+                              投稿者: {post.creatorDisplayName || '不明'} (ID: {post._created_by?.substring(0, 8)}...)
                             </Badge>
                           </div>
                           <p className="text-xs text-gray-500">
