@@ -87,7 +87,10 @@ const Admin = () => {
         return;
       }
       
-      if (!currentUser.isPrimaryTeam) {
+      // Check if user is admin (either isPrimaryTeam or specific admin email)
+      const isAdminUser = currentUser.isPrimaryTeam || currentUser.email === ADMIN_EMAIL;
+      
+      if (!isAdminUser) {
         navigate('/');
         return;
       }
