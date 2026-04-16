@@ -9,6 +9,7 @@ import Admin from "./pages/Admin";
 import PostDetail from "./pages/PostDetail";
 import ForumPage from "./pages/ForumPage";
 import ForumTopicDetail from "./pages/ForumTopicDetail";
+import Activate from "./pages/Activate";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/post/:postId" element={<PostDetail />} />
           <Route path="/forum" element={<ForumPage />} />
           <Route path="/forum/:id" element={<ForumTopicDetail />} />
+          <Route path="/activate" element={<Activate />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ArrowLeft } from 'lucide-react';
 import auth from '@/lib/shared/kliv-auth';
+import functions from '@/lib/shared/kliv-functions';
 import db from '@/lib/shared/kliv-database';
 import { useToast } from '@/hooks/use-toast';
 
@@ -81,18 +82,30 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) =>
     setError('');
 
     try {
-      await auth.signUp(registerEmail, registerPassword, registerName);
-      const signedInUser = await auth.signIn(registerEmail, registerPassword);
-      
-      onAuthSuccess(signedInUser);
-      onClose();
-      toast({
-        title: "登録完了",
-        description: "アカウントが作成されました！",
+      // Edge Functionでメール認証付き新規登録
+      const result = await functions.call('register-with-email-confirmation', {
+        email: registerEmail,
+        password: registerPassword,
+        name: registerName
       });
 
-      // Create profile in background after login completes
-      ensureProfileExists(signedInUser);
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+
+      // メール認証を促すメッセージを表示
+      toast({
+        title: "確認メールを送信しました",
+        description: `${registerEmail} に確認メールを送信しました。メール内のリンクをクリックして登録を完了してください。`,
+      });
+      
+      // フォームをリセット
+      setRegisterEmail('');
+      setRegisterPassword('');
+      setRegisterName('');
+      handleClose();
+      
     } catch (err: any) {
       setError(err.message || '登録に失敗しました');
     } finally {
