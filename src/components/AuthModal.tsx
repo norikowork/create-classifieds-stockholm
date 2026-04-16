@@ -113,10 +113,22 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) =>
       setResetStep(2);
       toast({
         title: "リセットコード送信",
-        description: "メールにリセットコードを送信しました",
+        description: "メールにリセットコードを送信しました。",
+        className: "bg-yellow-50 border-yellow-200 text-yellow-900",
       });
     } catch (err: any) {
-      setError(err.message || 'リセットコードの送信に失敗しました');
+      console.error('Password reset request error:', err);
+      
+      // エラーメッセージをわかりやすく整形
+      let errorMessage = err.message || 'リセットコードの送信に失敗しました';
+      
+      if (errorMessage.includes('email_template_not_configured')) {
+        errorMessage = 'メールテンプレートが設定されていません。管理者にお問い合わせください。';
+      } else if (errorMessage.includes('email_rate_limit_exceeded')) {
+        errorMessage = 'メール送信回数の上限を超えました。しばらくしてから再度お試しください。';
+      }
+      
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -134,24 +146,31 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) =>
     }
 
     try {
-      const response = await fetch('/api/v2/auth/password-reset-complete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: resetCode, password: newPassword })
+      // 認証SDKでパスワードリセット完了
+      await auth.completePasswordReset(resetCode, newPassword);
+      
+      toast({
+        title: "パスワードリセット完了",
+        description: "新しいパスワードが設定されました。ログインしてください。",
+        className: "bg-green-50 border-green-200 text-green-900",
       });
-
-      if (response.ok) {
-        toast({
-          title: "パスワードリセット完了",
-          description: "新しいパスワードが設定されました",
-        });
-        handleClose();
-      } else {
-        const errorData = await response.json();
-        setError(errorData.message || 'パスワードのリセットに失敗しました');
-      }
+      
+      handleClose();
     } catch (err: any) {
-      setError(err.message || 'パスワードのリセットに失敗しました');
+      console.error('Password reset error:', err);
+      
+      // エラーメッセージをわかりやすく整形
+      let errorMessage = err.message || 'パスワードのリセットに失敗しました';
+      
+      if (errorMessage.includes('invalid_token')) {
+        errorMessage = 'リセットコードが無効です。有効期限が切れている可能性があります。再度リセットをリクエストしてください。';
+      } else if (errorMessage.includes('password_too_short')) {
+        errorMessage = 'パスワードが短すぎます。最低8文字以上で入力してください。';
+      } else if (errorMessage.includes('insufficient_password_complexity')) {
+        errorMessage = 'パスワードが脆弱です。より複雑なパスワードを設定してください。';
+      }
+      
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }

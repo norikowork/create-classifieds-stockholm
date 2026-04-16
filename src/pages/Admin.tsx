@@ -270,24 +270,39 @@ const Admin = () => {
 
   const handleDeleteUser = async (userUuid) => {
     try {
+      // ユーザーを削除（論理削除）
       await db.update('users',
         { user_uuid: `eq.${userUuid}` },
         { _deleted: 1 }
       );
       
+      // ユーザープロフィールを削除
       await db.update('user_profiles',
         { user_uuid: `eq.${userUuid}` },
         { _deleted: 1 }
       );
       
+      // ユーザーの投稿を削除
       await db.update('posts',
+        { _created_by: `eq.${userUuid}` },
+        { _deleted: 1 }
+      );
+      
+      // ユーザーの掲示板トピックを削除
+      await db.update('forum_topics',
+        { _created_by: `eq.${userUuid}` },
+        { _deleted: 1 }
+      );
+      
+      // ユーザーの掲示板返信を削除
+      await db.update('forum_replies',
         { _created_by: `eq.${userUuid}` },
         { _deleted: 1 }
       );
       
       toast({
         title: "ユーザー削除完了",
-        description: "ユーザーと関連投稿が削除されました",
+        description: "ユーザーと関連データ（投稿、掲示板、プロフィール）が削除されました",
       });
       
       loadAdminData();
