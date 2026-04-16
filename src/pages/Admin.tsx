@@ -472,8 +472,6 @@ const Admin = () => {
     if (searchTerm) {
       filtered = filtered.filter(user => 
         user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.display_name?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
@@ -838,7 +836,7 @@ const Admin = () => {
                         <div className="flex-1">
                           <div className="flex items-center gap-3">
                             <h3 className="font-semibold">
-                              {userItem.display_name || userItem.first_name || userItem.email || '不明'}
+                              {userItem.display_name || '不明'}
                             </h3>
                             {/* アカウント状態バッジ */}
                             {userItem.is_auth_sdk_user || userItem.email ? (

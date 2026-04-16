@@ -45,6 +45,7 @@ const statusLabels = {
 const Profile = () => {
   const [user, setUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
+  const [userCreatedAt, setUserCreatedAt] = useState(null);
   const [userPosts, setUserPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -97,6 +98,23 @@ const Profile = () => {
           phone: profile.phone || '',
           county: profile.county || ''
         });
+      }
+      
+      // Load user registration date from users table
+      try {
+        const usersData = await db.query('users', { 
+          user_uuid: `eq.${currentUser.userUuid}` 
+        });
+        if (usersData.length > 0) {
+          setUserCreatedAt(usersData[0]._created_at);
+        } else {
+          // Fallback to profile creation date
+          setUserCreatedAt(profiles.length > 0 ? profiles[0]._created_at : null);
+        }
+      } catch (userError) {
+        console.warn('Could not load user registration date:', userError);
+        // Fallback to profile creation date
+        setUserCreatedAt(profiles.length > 0 ? profiles[0]._created_at : null);
       }
       
       // Load user posts
@@ -733,7 +751,7 @@ const Profile = () => {
                       <div>
                         <p className="font-medium">登録日</p>
                         <p className="text-sm text-gray-600">
-                          {user.createdAt ? formatDate(user.createdAt) : 'N/A'}
+                          {userCreatedAt ? formatDate(userCreatedAt) : 'N/A'}
                         </p>
                       </div>
                     </div>
