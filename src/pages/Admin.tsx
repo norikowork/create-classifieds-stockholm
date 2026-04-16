@@ -406,7 +406,7 @@ const Admin = () => {
 
   const getCategoryName = (categoryUuid) => {
     const category = categories.find(cat => cat._row_id === categoryUuid || cat.uuid === categoryUuid);
-    return category ? category.name : '未分類';
+    return category ? (category.name_ja || category.name) : '未分類';
   };
 
   const handleCreateCategory = async () => {
@@ -836,7 +836,7 @@ const Admin = () => {
                       <div key={category.uuid} className="border rounded-lg p-4">
                         <div className="flex justify-between items-center">
                           <div>
-                            <h3 className="font-semibold">{category.name}</h3>
+                            <h3 className="font-semibold">{category.name_ja || category.name}</h3>
                             <p className="text-gray-600 text-sm">{category.description}</p>
                           </div>
                           <Button
