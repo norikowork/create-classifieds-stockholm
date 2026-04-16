@@ -116,7 +116,40 @@ const Admin = () => {
         db.query('user_profiles', { _deleted: 'eq.0' })
       ]);
       
-      setAllUsers(users);
+      // 統合ユーザーリストを作成（usersテーブル + user_profilesテーブル）
+      const combinedUsers = [];
+      const seenUserUuids = new Set();
+      
+      // usersテーブルのユーザーを追加
+      users.forEach(user => {
+        seenUserUuids.add(user.user_uuid);
+        const profile = userProfiles.find(p => p.user_uuid === user.user_uuid);
+        combinedUsers.push({
+          ...user,
+          display_name: profile?.display_name || user.first_name || user.email,
+          profile_exists: !!profile
+        });
+      });
+      
+      // user_profilesテーブルにのみ存在するユーザーを追加（認証SDKで作成されたユーザー）
+      userProfiles.forEach(profile => {
+        if (!seenUserUuids.has(profile.user_uuid)) {
+          combinedUsers.push({
+            user_uuid: profile.user_uuid,
+            email: profile.display_name, // 認証SDKユーザーの場合、emailが保存されていない
+            first_name: profile.display_name,
+            last_name: '',
+            _created_at: profile._created_at,
+            _updated_at: profile._updated_at,
+            user_metadata: { blocked: profile.is_blocked === 1 },
+            display_name: profile.display_name,
+            profile_exists: true,
+            is_auth_sdk_user: true
+          });
+        }
+      });
+      
+      setAllUsers(combinedUsers);
       
       // Add creator display name to posts
       const postsWithCreatorNames = posts.map(post => {
@@ -162,10 +195,10 @@ const Admin = () => {
       setFlaggedPosts(flaggedWithCreatorNames);
       setCategories(categoriesData);
       
-      // Calculate stats
-      const blockedCount = users.filter(u => u.user_metadata?.blocked).length;
+      // Calculate stats (統合ユーザーリストを使用)
+      const blockedCount = combinedUsers.filter(u => u.user_metadata?.blocked || u.is_blocked === 1).length;
       setStats({
-        totalUsers: users.length,
+        totalUsers: combinedUsers.length,
         totalPosts: posts.length,
         flaggedPosts: flagged.length,
         blockedUsers: blockedCount
@@ -379,14 +412,15 @@ const Admin = () => {
       filtered = filtered.filter(user => 
         user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.last_name?.toLowerCase().includes(searchTerm.toLowerCase())
+        user.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.display_name?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
     
     if (userFilter === 'blocked') {
-      filtered = filtered.filter(user => user.user_metadata?.blocked);
+      filtered = filtered.filter(user => user.user_metadata?.blocked || user.is_blocked === 1);
     } else if (userFilter === 'active') {
-      filtered = filtered.filter(user => !user.user_metadata?.blocked);
+      filtered = filtered.filter(user => !user.user_metadata?.blocked && user.is_blocked !== 1);
     }
     
     return filtered;
@@ -739,12 +773,17 @@ const Admin = () => {
                         <div className="flex-1">
                           <div className="flex items-center gap-3">
                             <h3 className="font-semibold">
-                              {userItem.first_name} {userItem.last_name}
+                              {userItem.display_name || userItem.first_name || userItem.email || '不明'}
                             </h3>
-                            {userItem.user_metadata?.blocked && (
+                            {(userItem.user_metadata?.blocked || userItem.is_blocked === 1) && (
                               <Badge variant="destructive">
                                 <Ban className="h-3 w-3 mr-1" />
                                 ブロック済み
+                              </Badge>
+                            )}
+                            {userItem.is_auth_sdk_user && (
+                              <Badge variant="outline" className="bg-purple-50">
+                                認証SDK
                               </Badge>
                             )}
                             {userItem.email === user?.email && (
@@ -754,7 +793,7 @@ const Admin = () => {
                               </Badge>
                             )}
                           </div>
-                          <p className="text-gray-600 text-sm">{userItem.email}</p>
+                          <p className="text-gray-600 text-sm">{userItem.email || 'メール未設定'}</p>
                           <p className="text-xs text-gray-500">
                             登録日: {formatDate(userItem._created_at)}
                           </p>
