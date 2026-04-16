@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, MapPin, Calendar, DollarSign, User, Mail, Phone, Send, X, Image as ImageIcon, MessageSquare, Home, Shield, ChevronLeft, ChevronRight, Briefcase, Building, TrendingUp, Package } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, DollarSign, User, Mail, Phone, Send, X, Image as ImageIcon, MessageSquare, Home, Shield, ChevronLeft, ChevronRight, Briefcase, Building, TrendingUp, Package, Share2, Link2, Linkedin, Twitter, Facebook } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -382,6 +382,55 @@ const PostDetail = () => {
     }
   };
 
+  // Share functionality
+  const handleShare = async (platform) => {
+    const url = window.location.href;
+    const title = post?.title || 'Sverige.JP - スウェーデン日本コミュニティ';
+    const text = post?.description || '';
+
+    switch (platform) {
+      case 'copy':
+        try {
+          await navigator.clipboard.writeText(url);
+          toast({
+            title: "コピー完了",
+            description: "URLをクリップボードにコピーしました",
+          });
+        } catch (error) {
+          console.error('Failed to copy:', error);
+          toast({
+            title: "エラー",
+            description: "URLのコピーに失敗しました",
+            variant: "destructive"
+          });
+        }
+        break;
+
+      case 'line':
+        const lineUrl = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(url)}`;
+        window.open(lineUrl, '_blank');
+        break;
+
+      case 'twitter':
+        const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`;
+        window.open(twitterUrl, '_blank');
+        break;
+
+      case 'facebook':
+        const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+        window.open(facebookUrl, '_blank');
+        break;
+
+      case 'linkedin':
+        const linkedinUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`;
+        window.open(linkedinUrl, '_blank');
+        break;
+
+      default:
+        break;
+    }
+  };
+
 
 
   const handleContactClick = async () => {
@@ -620,6 +669,44 @@ const PostDetail = () => {
                         </span>
                       )}
                     </div>
+                  </div>
+
+                  {/* Share Buttons */}
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleShare('copy')}
+                      className="flex items-center gap-2"
+                    >
+                      <Link2 className="w-4 h-4" />
+                      URLコピー
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleShare('line')}
+                      className="flex items-center gap-2 bg-green-50 hover:bg-green-100 border-green-300 text-green-700"
+                    >
+                      <MessageSquare className="w-4 h-4" />
+                      LINE
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleShare('twitter')}
+                      className="flex items-center gap-2 bg-sky-50 hover:bg-sky-100 border-sky-300 text-sky-700"
+                    >
+                      <Twitter className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleShare('facebook')}
+                      className="flex items-center gap-2 bg-blue-50 hover:bg-blue-100 border-blue-300 text-blue-700"
+                    >
+                      <Facebook className="w-4 h-4" />
+                    </Button>
                   </div>
 
                 </div>
