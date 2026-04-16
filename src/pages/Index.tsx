@@ -707,27 +707,25 @@ const Index = () => {
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <CardTitle className="text-lg line-clamp-2">{post.title}</CardTitle>
-                      <CardDescription className="mt-1">
-                        {/* Date and Price row */}
-                        <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
-                          <span>{formatDate(post._created_at)}</span>
-                          {post.category_uuid === 'cat-job-seeking' && post.employment_type && (
-                            <span className="font-semibold text-blue-600">
-                              {employmentTypeLabels[post.employment_type] || post.employment_type}
-                            </span>
-                          )}
-                          {post.post_type === 'free' && post.price && (
-                            <span className="font-semibold text-green-600">
-                              {post.price} SEK
-                            </span>
-                          )}
-                          {post.post_type === 'event' && post.event_date_readable && (
-                            <span className="font-semibold text-purple-600">
-                              📅 {post.event_date_readable}
-                            </span>
-                          )}
-                        </div>
-                      </CardDescription>
+                      {/* Date and Price row */}
+                      <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
+                        <span>{formatDate(post._created_at)}</span>
+                        {post.category_uuid === 'cat-job-seeking' && post.employment_type && (
+                          <span className="font-semibold text-blue-600">
+                            {employmentTypeLabels[post.employment_type] || post.employment_type}
+                          </span>
+                        )}
+                        {post.post_type === 'free' && post.price && (
+                          <span className="font-semibold text-green-600">
+                            {post.price} SEK
+                          </span>
+                        )}
+                        {post.post_type === 'event' && post.event_date_readable && (
+                          <span className="font-semibold text-purple-600">
+                            📅 {post.event_date_readable}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </CardHeader>
