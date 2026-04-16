@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, Loader2, XCircle } from 'lucide-react';
-import db from '@/lib/shared/kliv-database';
+import auth from '@/lib/shared/kliv-auth';
 import { toast } from 'sonner';
 
 export default function ActivatePage() {
@@ -23,44 +23,30 @@ export default function ActivatePage() {
       }
 
       try {
-        // データベースからトークン情報を取得
-        const tokenData = await db.query('activation_tokens', {
-          token: `eq.${token}`
-        });
-
-        if (!tokenData || tokenData.length === 0) {
-          setStatus('error');
-          setMessage('トークンが見つかりません。再度新規登録をお願いします。');
-          return;
-        }
-
-        const activationRecord = tokenData[0];
-        const { email, password, name, expires_at } = activationRecord;
-
-        // トークンの有効期限を確認
-        const now = Math.floor(Date.now() / 1000);
-        if (expires_at < now) {
-          setStatus('error');
-          setMessage('トークンの有効期限が切れています。再度新規登録をお願いします。');
-          return;
-        }
-
-        // ユーザーを作成（auth.signUpを使用）
-        const auth = (await import('@/lib/shared/kliv-auth')).default;
-        await auth.signUp(email, password, name);
-
-        // 使用したトークンを削除
-        await db.delete('activation_tokens', {
-          token: `eq.${token}`
-        });
-
-        setStatus('success');
-        setMessage('アカウントが有効化されました！ログインしてください。');
+        // アクティベーション情報を取得
+        const activationInfo = await auth.getActivationInfo(token);
         
-        toast({
-          title: "登録完了",
-          description: "アカウントが有効化されました！ログインしてください。",
-        });
+        console.log('Activation info:', activationInfo);
+        
+        // パスワード設定が不要か確認
+        if (!activationInfo.requiresPassword) {
+          // アカウントをアクティベート
+          const user = await auth.activate(token);
+          
+          console.log('Activated user:', user);
+          
+          setStatus('success');
+          setMessage('アカウントが有効化されました！ログインしてください。');
+          
+          toast({
+            title: "登録完了",
+            description: "アカウントが有効化されました！ログインしてください。",
+          });
+        } else {
+          setStatus('error');
+          setMessage('このリンクは無効です。再度新規登録をお願いします。');
+          return;
+        }
         
         // 5秒後にログインページへ
         setTimeout(() => {
@@ -70,7 +56,7 @@ export default function ActivatePage() {
       } catch (error: any) {
         console.error('Activation error:', error);
         setStatus('error');
-        setMessage(error.message || 'アカウントの有効化に失敗しました。');
+        setMessage(error.message || 'アカウントの有効化に失敗しました。トークンの有効期限が切れている可能性があります。');
       }
     };
 

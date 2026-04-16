@@ -7,7 +7,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ArrowLeft } from 'lucide-react';
 import auth from '@/lib/shared/kliv-auth';
-import functions from '@/lib/shared/kliv-functions';
 import db from '@/lib/shared/kliv-database';
 import { useToast } from '@/hooks/use-toast';
 
@@ -82,18 +81,15 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) =>
     setError('');
 
     try {
-      // Edge Functionでメール認証付き新規登録
-      const result = await functions.call('register-with-email-confirmation', {
-        email: registerEmail,
-        password: registerPassword,
-        name: registerName
-      });
-
-      if (result.error) {
-        setError(result.error);
-        return;
-      }
-
+      // 新規登録（自動サインインされる）
+      await auth.signUp(registerEmail, registerPassword, registerName);
+      
+      // サインアウトしてメール認証を促す
+      await auth.signOut();
+      
+      // 確認メールを再送
+      await auth.resendActivation(registerEmail);
+      
       // メール認証を促すメッセージを表示
       toast({
         title: "確認メールを送信しました",
