@@ -419,6 +419,20 @@ const Profile = () => {
     });
   };
 
+  const handleSignOut = async () => {
+    try {
+      await auth.signOut();
+      navigate('/');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast({
+        title: "エラー",
+        description: "ログアウトに失敗しました",
+        variant: "destructive"
+      });
+    }
+  };
+
   const formatDate = (timestamp) => {
     const date = new Date(timestamp * 1000);
     return date.toLocaleDateString('ja-JP') + ' ' + date.toLocaleTimeString('ja-JP', { 
