@@ -241,6 +241,10 @@ const PostDetail = () => {
     return location ? location.name_en || location.name_ja : 'Ej angivet';
   };
 
+  const getLocationData = (locationId) => {
+    return locations.find(l => l.uuid === locationId);
+  };
+
   const getCategoryName = (categoryId) => {
     const category = categories.find(c => c.uuid === categoryId);
     return category ? category.name_ja || category.name_en : 'Ej angivet';
@@ -952,6 +956,8 @@ const PostDetail = () => {
                   <div className="w-full" style={{ height: '300px' }}>
                     <SingleLocationMap 
                       locationName={getLocationName(post.location_uuid)}
+                      latitude={getLocationData(post.location_uuid)?.latitude}
+                      longitude={getLocationData(post.location_uuid)?.longitude}
                       className="w-full h-full"
                     />
                   </div>

@@ -12,10 +12,12 @@ L.Icon.Default.mergeOptions({
 
 interface SingleLocationMapProps {
   locationName: string;
+  latitude?: number;
+  longitude?: number;
   className?: string;
 }
 
-export default function SingleLocationMap({ locationName, className = '' }: SingleLocationMapProps) {
+export default function SingleLocationMap({ locationName, latitude, longitude, className = '' }: SingleLocationMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
@@ -68,7 +70,24 @@ export default function SingleLocationMap({ locationName, className = '' }: Sing
         setIsMapReady(true);
       }
 
-      // Geocode the location name
+      // If coordinates are provided, use them directly
+      if (latitude && longitude) {
+        // Update map view
+        mapInstanceRef.current?.setView([latitude, longitude], 14);
+
+        // Remove existing marker
+        if (markerRef.current) {
+          markerRef.current.remove();
+        }
+
+        // Add new marker
+        const marker = L.marker([latitude, longitude]).addTo(mapInstanceRef.current!);
+        marker.bindPopup(`<b>${locationName}</b>`).openPopup();
+        markerRef.current = marker;
+        return;
+      }
+
+      // Otherwise, fall back to geocoding
       const geocodeLocation = async () => {
         try {
           const response = await fetch(
@@ -107,7 +126,7 @@ export default function SingleLocationMap({ locationName, className = '' }: Sing
     return () => {
       // Cleanup is handled in the first useEffect
     };
-  }, [locationName]);
+  }, [locationName, latitude, longitude]);
 
   return (
     <div className={`relative ${className}`}>
