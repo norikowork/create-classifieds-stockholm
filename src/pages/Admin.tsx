@@ -147,9 +147,13 @@ const Admin = () => {
       // user_profilesテーブルにのみ存在するユーザーを追加（認証SDKで作成されたユーザー）
       userProfiles.forEach(profile => {
         if (!seenUserUuids.has(profile.user_uuid)) {
+          // display_nameからメールアドレスを抽出
+          const emailMatch = profile.display_name.match(/[\w.-]+@[\w.-]+\.\w+/);
+          const userEmail = emailMatch ? emailMatch[0] : '';
+          
           combinedUsers.push({
             user_uuid: profile.user_uuid,
-            email: '', // 認証SDKユーザーの場合、emailが保存されていない
+            email: userEmail, // display_nameに含まれるメールアドレスを抽出
             first_name: profile.display_name,
             last_name: '',
             _created_at: profile._created_at,
@@ -318,13 +322,28 @@ const Admin = () => {
 
   const handleBlockUser = async (userUuid) => {
     try {
-      await db.update('users',
-        { user_uuid: `eq.${userUuid}` },
-        { 
-          user_metadata: JSON.stringify({ ...allUsers.find(u => u.user_uuid === userUuid)?.user_metadata, blocked: true }),
-          _updated_at: Math.floor(Date.now() / 1000)
-        }
-      );
+      const userData = allUsers.find(u => u.user_uuid === userUuid);
+      
+      if (userData.is_auth_sdk_user) {
+        // 認証SDKユーザーの場合、user_profiles.is_blockedを更新
+        await db.update('user_profiles',
+          { user_uuid: `eq.${userUuid}` },
+          { 
+            is_blocked: 1,
+            _updated_at: Math.floor(Date.now() / 1000)
+          }
+        );
+      } else {
+        // 通常ユーザーの場合、users.metadataを更新
+        const metadata = { ...userData.user_metadata, blocked: true };
+        await db.update('users',
+          { user_uuid: `eq.${userUuid}` },
+          { 
+            metadata: JSON.stringify(metadata),
+            _updated_at: Math.floor(Date.now() / 1000)
+          }
+        );
+      }
       
       toast({
         title: "ユーザーブロック完了",
@@ -345,15 +364,27 @@ const Admin = () => {
   const handleUnblockUser = async (userUuid) => {
     try {
       const userData = allUsers.find(u => u.user_uuid === userUuid);
-      const metadata = { ...userData?.user_metadata, blocked: false };
       
-      await db.update('users',
-        { user_uuid: `eq.${userUuid}` },
-        { 
-          user_metadata: JSON.stringify(metadata),
-          _updated_at: Math.floor(Date.now() / 1000)
-        }
-      );
+      if (userData.is_auth_sdk_user) {
+        // 認証SDKユーザーの場合、user_profiles.is_blockedを更新
+        await db.update('user_profiles',
+          { user_uuid: `eq.${userUuid}` },
+          { 
+            is_blocked: 0,
+            _updated_at: Math.floor(Date.now() / 1000)
+          }
+        );
+      } else {
+        // 通常ユーザーの場合、users.metadataを更新
+        const metadata = { ...userData.user_metadata, blocked: false };
+        await db.update('users',
+          { user_uuid: `eq.${userUuid}` },
+          { 
+            metadata: JSON.stringify(metadata),
+            _updated_at: Math.floor(Date.now() / 1000)
+          }
+        );
+      }
       
       toast({
         title: "ユーザーブロック解除完了",
