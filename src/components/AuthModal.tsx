@@ -94,6 +94,7 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) =>
       toast({
         title: "確認メールを送信しました",
         description: `${registerEmail} に確認メールを送信しました。メール内のリンクをクリックして登録を完了してください。`,
+        className: "bg-yellow-50 border-yellow-200 text-yellow-900",
       });
       
       // フォームをリセット
