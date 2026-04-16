@@ -5,9 +5,9 @@ const Footer = () => {
   return (
     <footer className="bg-gray-900 text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Company Info */}
-          <div className="col-span-1 md:col-span-2">
+          <div>
             <Link to="/" className="flex items-center space-x-2 mb-4 hover:opacity-80 transition-opacity">
               <img 
                 src="/content/templates/sverigejplogo.png" 
@@ -46,85 +46,57 @@ const Footer = () => {
           {/* Quick Links */}
           <div>
             <h4 className="text-lg font-semibold mb-4">リンク</h4>
-            <ul className="space-y-2">
-              <li>
-                <Link to="/" className="text-gray-300 hover:text-white transition-colors">
-                  ホーム
-                </Link>
-              </li>
-              <li>
-                <Link to="/" className="text-gray-300 hover:text-white transition-colors">
-                  全て
-                </Link>
-              </li>
-              <li>
-                <a href="/?category=cat-for-sale" className="text-gray-300 hover:text-white transition-colors">
-                  売ります
-                </a>
-              </li>
-              <li>
-                <a href="/?category=cat-job-seeking" className="text-gray-300 hover:text-white transition-colors">
-                  仕事探し
-                </a>
-              </li>
-              <li>
-                <a href="/?category=cat-housing" className="text-gray-300 hover:text-white transition-colors">
-                  住居
-                </a>
-              </li>
-              <li>
-                <a href="/?category=cat-events" className="text-gray-300 hover:text-white transition-colors">
-                  イベントお知らせ
-                </a>
-              </li>
-              <li>
-                <a href="/?category=cat-services" className="text-gray-300 hover:text-white transition-colors">
-                  サービス
-                </a>
-              </li>
-              <li>
-                <Link to="/forum" className="text-gray-300 hover:text-white transition-colors">
-                  掲示板
-                </Link>
-              </li>
-              <li>
-                <Link to="/profile" className="text-gray-300 hover:text-white transition-colors">
-                  プロフィール
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Categories */}
-          <div>
-            <h4 className="text-lg font-semibold mb-4">カテゴリー</h4>
-            <ul className="space-y-2">
-              <li>
-                <a href="/?category=cat-for-sale" className="text-gray-300 hover:text-white transition-colors">
-                  販売
-                </a>
-              </li>
-              <li>
-                <a href="/?category=cat-wanted" className="text-gray-300 hover:text-white transition-colors">
-                  探しています
-                </a>
-              </li>
-              <li>
-                <a href="/?category=cat-job-seeking" className="text-gray-300 hover:text-white transition-colors">
-                  求職
-                </a>
-              </li>
-              <li>
-                <a href="/?category=cat-housing" className="text-gray-300 hover:text-white transition-colors">
-                  住居
-                </a>
-              </li>
-              <li>
-                <a href="/?category=cat-events" className="text-gray-300 hover:text-white transition-colors">
-                  イベント
-                </a>
-              </li>
-            </ul>
+            <div className="grid grid-cols-2 gap-4">
+              <ul className="space-y-2">
+                <li>
+                  <Link to="/" className="text-gray-300 hover:text-white transition-colors">
+                    ホーム
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/" className="text-gray-300 hover:text-white transition-colors">
+                    全て
+                  </Link>
+                </li>
+                <li>
+                  <a href="/?category=cat-for-sale" className="text-gray-300 hover:text-white transition-colors">
+                    売ります
+                  </a>
+                </li>
+                <li>
+                  <a href="/?category=cat-job-seeking" className="text-gray-300 hover:text-white transition-colors">
+                    仕事探し
+                  </a>
+                </li>
+                <li>
+                  <a href="/?category=cat-housing" className="text-gray-300 hover:text-white transition-colors">
+                    住居
+                  </a>
+                </li>
+              </ul>
+              <ul className="space-y-2">
+                <li>
+                  <a href="/?category=cat-events" className="text-gray-300 hover:text-white transition-colors">
+                    イベントお知らせ
+                  </a>
+                </li>
+                <li>
+                  <a href="/?category=cat-services" className="text-gray-300 hover:text-white transition-colors">
+                    サービス
+                  </a>
+                </li>
+                <li>
+                  <Link to="/forum" className="text-gray-300 hover:text-white transition-colors">
+                    掲示板
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/profile" className="text-gray-300 hover:text-white transition-colors">
+                    プロフィール
+                  </Link>
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
 
