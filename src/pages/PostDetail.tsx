@@ -486,21 +486,41 @@ const PostDetail = () => {
         break;
 
       case 'facebook':
-        // Facebookのシェア - Open Graphメタタグを使用
-        // URLにタイムスタンプを追加してキャッシュを回避
-        const shareUrl = `${url}?fb_share=${Date.now()}`;
-        const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
+        // Facebookに投稿する画像URLをコピー
+        let imageUrl = '';
+        if (post.images && Array.isArray(post.images) && post.images.length > 0) {
+          imageUrl = post.images[0];
+        }
         
-        console.log('🔗 Facebook share URL:', shareUrl);
-        console.log('📸 First image:', post.images?.[0] || 'No images');
+        if (!imageUrl) {
+          toast({
+            title: "エラー",
+            description: "この投稿には画像がありません",
+            variant: "destructive"
+          });
+          return;
+        }
         
-        // 新しいウィンドウでFacebookシェアダイアログを開く
-        window.open(facebookUrl, '_blank', 'width=600,height=400');
+        // 絶対URLに変換
+        if (imageUrl.startsWith('/')) {
+          imageUrl = 'https://create-classifieds-stockholm.kliv.site' + imageUrl;
+        }
         
-        toast({
-          title: "Facebookシェア",
-          description: "Facebookシェアダイアログを開きました",
-        });
+        try {
+          await navigator.clipboard.writeText(imageUrl);
+          toast({
+            title: "画像URLコピー完了",
+            description: "Facebookに貼り付けて画像付き投稿できます",
+          });
+          console.log('📸 Copied image URL:', imageUrl);
+        } catch (error) {
+          console.error('Failed to copy image URL:', error);
+          toast({
+            title: "エラー",
+            description: "画像URLのコピーに失敗しました",
+            variant: "destructive"
+          });
+        }
         break;
 
       case 'linkedin':
@@ -788,6 +808,7 @@ const PostDetail = () => {
                       className="flex items-center gap-2 bg-blue-50 hover:bg-blue-100 border-blue-300 text-blue-700"
                     >
                       <Facebook className="w-4 h-4" />
+                      画像URLコピー
                     </Button>
                   </div>
 
