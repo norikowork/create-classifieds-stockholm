@@ -222,8 +222,24 @@ const PostDetail = () => {
 
   // Set Open Graph meta tags for Facebook sharing
   useEffect(() => {
-    if (post && post.images && post.images.length > 0) {
-      const firstImageUrl = post.images[0];
+    if (post) {
+      // Get first image URL
+      let firstImageUrl = '';
+      if (post.images && Array.isArray(post.images) && post.images.length > 0) {
+        firstImageUrl = post.images[0];
+      }
+      
+      // Fallback to default image if no images
+      if (!firstImageUrl) {
+        firstImageUrl = 'https://create-classifieds-stockholm.kliv.site/content/templates/sverigejplogo.png';
+      }
+      
+      // Ensure image URL is absolute
+      if (firstImageUrl.startsWith('/')) {
+        firstImageUrl = 'https://create-classifieds-stockholm.kliv.site' + firstImageUrl;
+      }
+      
+      console.log('📸 Setting og:image to:', firstImageUrl);
       
       // Update or create meta tags
       const updateMetaTag = (property, content) => {
@@ -236,11 +252,27 @@ const PostDetail = () => {
         meta.setAttribute('content', content);
       };
       
-      updateMetaTag('og:title', post.title || 'Sverige.JP - スウェーデン日本コミュニティ');
-      updateMetaTag('og:description', post.description || '');
+      const pageUrl = window.location.href;
+      const title = post.title || 'Sverige.JP - スウェーデン日本コミュニティ';
+      const description = post.description || '';
+      
+      updateMetaTag('og:title', title);
+      updateMetaTag('og:description', description);
       updateMetaTag('og:image', firstImageUrl);
-      updateMetaTag('og:url', window.location.href);
+      updateMetaTag('og:url', pageUrl);
       updateMetaTag('og:type', 'article');
+      
+      // Also set twitter card
+      updateMetaTag('twitter:card', 'summary_large_image');
+      updateMetaTag('twitter:image', firstImageUrl);
+      updateMetaTag('twitter:title', title);
+      updateMetaTag('twitter:description', description);
+      
+      console.log('✅ Open Graph meta tags updated:', {
+        'og:title': title,
+        'og:image': firstImageUrl,
+        'og:url': pageUrl
+      });
     }
   }, [post]);
 
@@ -441,27 +473,21 @@ const PostDetail = () => {
         break;
 
       case 'facebook':
-        // Facebookのシェア - 最初の画像を含める
-        let firstImageUrl = '';
-        try {
-          if (post.images) {
-            let images = [];
-            if (typeof post.images === 'string') {
-              images = JSON.parse(post.images);
-            } else if (Array.isArray(post.images)) {
-              images = post.images;
-            }
-            if (images.length > 0) {
-              firstImageUrl = images[0];
-            }
-          }
-        } catch (e) {
-          console.error('Error parsing images for Facebook share:', e);
-        }
+        // Facebookのシェア - Open Graphメタタグを使用
+        // URLにタイムスタンプを追加してキャッシュを回避
+        const shareUrl = `${url}?fb_share=${Date.now()}`;
+        const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
         
-        // Facebook Sharer (現在はURLのみサポート)
-        const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
-        window.open(facebookUrl, '_blank');
+        console.log('🔗 Facebook share URL:', shareUrl);
+        console.log('📸 First image:', post.images?.[0] || 'No images');
+        
+        // 新しいウィンドウでFacebookシェアダイアログを開く
+        window.open(facebookUrl, '_blank', 'width=600,height=400');
+        
+        toast({
+          title: "Facebookシェア",
+          description: "Facebookシェアダイアログを開きました",
+        });
         break;
 
       case 'linkedin':
