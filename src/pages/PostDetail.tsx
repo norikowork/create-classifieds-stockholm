@@ -486,38 +486,19 @@ const PostDetail = () => {
         break;
 
       case 'facebook':
-        // Facebookに投稿する画像URLをコピー
-        let imageUrl = '';
-        if (post.images && Array.isArray(post.images) && post.images.length > 0) {
-          imageUrl = post.images[0];
-        }
-        
-        if (!imageUrl) {
-          toast({
-            title: "エラー",
-            description: "この投稿には画像がありません",
-            variant: "destructive"
-          });
-          return;
-        }
-        
-        // 絶対URLに変換
-        if (imageUrl.startsWith('/')) {
-          imageUrl = 'https://create-classifieds-stockholm.kliv.site' + imageUrl;
-        }
-        
+        // Facebookでシェア（URLコピー）
         try {
-          await navigator.clipboard.writeText(imageUrl);
+          await navigator.clipboard.writeText(url);
           toast({
-            title: "画像URLコピー完了",
-            description: "Facebookに貼り付けて画像付き投稿できます",
+            title: "URLコピー完了",
+            description: "Facebookに貼り付けて投稿できます",
           });
-          console.log('📸 Copied image URL:', imageUrl);
+          console.log('🔗 Copied share URL:', url);
         } catch (error) {
-          console.error('Failed to copy image URL:', error);
+          console.error('Failed to copy URL:', error);
           toast({
             title: "エラー",
-            description: "画像URLのコピーに失敗しました",
+            description: "URLのコピーに失敗しました",
             variant: "destructive"
           });
         }
@@ -808,7 +789,7 @@ const PostDetail = () => {
                       className="flex items-center gap-2 bg-blue-50 hover:bg-blue-100 border-blue-300 text-blue-700"
                     >
                       <Facebook className="w-4 h-4" />
-                      画像URLコピー
+                      Facebook
                     </Button>
                   </div>
 
