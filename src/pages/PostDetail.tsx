@@ -141,6 +141,12 @@ const PostDetail = () => {
               userProfile = profilesData[0];
               userName = userProfile.display_name || 'SverigeJP スタッフ';
 
+              console.log('👤 User profile found:', {
+                user_uuid: postData._created_by,
+                display_name: userProfile.display_name,
+                email: userProfile.email
+              });
+
               // Store profile data including email
               setUserProfiles(prev => ({
                 ...prev,
@@ -192,6 +198,15 @@ const PostDetail = () => {
           userName,
           userProfile
         };
+
+        console.log('📄 Post loaded with user profile:', {
+          postId: postWithImages._row_id,
+          postTitle: postWithImages.title,
+          createdBy: postWithImages._created_by,
+          userName: postWithImages.userName,
+          hasUserProfile: !!postWithImages.userProfile,
+          userEmail: postWithImages.userProfile?.email
+        });
 
         setPost(postWithImages);
       } else {
@@ -559,11 +574,26 @@ const PostDetail = () => {
       }
 
       console.log('📧 Starting contact submission process');
+      console.log('📧 Current post data:', {
+        postId: post._row_id,
+        postTitle: post.title,
+        createdBy: post._created_by,
+        hasUserProfile: !!post.userProfile,
+        userEmail: post.userProfile?.email,
+        creatorEmail: post.creator_email,
+        userProfileKeys: post.userProfile ? Object.keys(post.userProfile) : []
+      });
 
-      // 投稿者のメールアドレスを取得
-      const toEmail = post.userProfile?.email;
+      // 投稿者のメールアドレスを取得（優先度: creator_email > userProfile.email > エラー）
+      const toEmail = post.creator_email || post.userProfile?.email;
       if (!toEmail) {
         setIsSubmitting(false);
+        console.error('❌ Poster email not found:', {
+          hasUserProfile: !!post.userProfile,
+          userProfile: post.userProfile,
+          creatorEmail: post.creator_email,
+          createdBy: post._created_by
+        });
         toast({
           title: "エラー",
           description: "投稿者のメールアドレスが見つかりません",

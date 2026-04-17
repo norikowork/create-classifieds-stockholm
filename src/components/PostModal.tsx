@@ -799,6 +799,7 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
         cross_street: formData.cross_street || '',
         city: formData.city || '',
         zip_code: formData.zip_code || '',
+        creator_email: currentUser.email || '',
         _updated_at: Math.floor(Date.now() / 1000)
       };
 
