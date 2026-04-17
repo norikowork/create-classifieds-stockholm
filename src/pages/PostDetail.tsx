@@ -220,6 +220,30 @@ const PostDetail = () => {
     checkAuthStatus();
   }, [postId]);
 
+  // Set Open Graph meta tags for Facebook sharing
+  useEffect(() => {
+    if (post && post.images && post.images.length > 0) {
+      const firstImageUrl = post.images[0];
+      
+      // Update or create meta tags
+      const updateMetaTag = (property, content) => {
+        let meta = document.querySelector(`meta[property="${property}"]`) as HTMLMetaElement;
+        if (!meta) {
+          meta = document.createElement('meta');
+          meta.setAttribute('property', property);
+          document.head.appendChild(meta);
+        }
+        meta.setAttribute('content', content);
+      };
+      
+      updateMetaTag('og:title', post.title || 'Sverige.JP - スウェーデン日本コミュニティ');
+      updateMetaTag('og:description', post.description || '');
+      updateMetaTag('og:image', firstImageUrl);
+      updateMetaTag('og:url', window.location.href);
+      updateMetaTag('og:type', 'article');
+    }
+  }, [post]);
+
   useEffect(() => {
     if (allPosts.length > 0 && post) {
       const currentIndex = allPosts.findIndex(p => p._row_id === post._row_id);
@@ -417,6 +441,25 @@ const PostDetail = () => {
         break;
 
       case 'facebook':
+        // Facebookのシェア - 最初の画像を含める
+        let firstImageUrl = '';
+        try {
+          if (post.images) {
+            let images = [];
+            if (typeof post.images === 'string') {
+              images = JSON.parse(post.images);
+            } else if (Array.isArray(post.images)) {
+              images = post.images;
+            }
+            if (images.length > 0) {
+              firstImageUrl = images[0];
+            }
+          }
+        } catch (e) {
+          console.error('Error parsing images for Facebook share:', e);
+        }
+        
+        // Facebook Sharer (現在はURLのみサポート)
         const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
         window.open(facebookUrl, '_blank');
         break;
