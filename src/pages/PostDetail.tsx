@@ -549,6 +549,7 @@ const PostDetail = () => {
     try {
       const currentUser = await auth.getUser();
       if (!currentUser) {
+        setIsSubmitting(false);
         toast({
           title: "エラー",
           description: "ログインが必要です",
@@ -557,40 +558,55 @@ const PostDetail = () => {
         return;
       }
 
-      console.log('📧 Sending contact inquiry:', {
-        postId: post._row_id,
-        postTitle: post.title,
-        fromEmail: currentUser.email,
-        toEmail: post.userProfile?.email,
-        message: contactMessage
-      });
+      console.log('📧 Starting contact submission process');
 
       // 投稿者のメールアドレスを取得
       const toEmail = post.userProfile?.email;
       if (!toEmail) {
-        throw new Error('投稿者のメールアドレスが見つかりません');
+        setIsSubmitting(false);
+        toast({
+          title: "エラー",
+          description: "投稿者のメールアドレスが見つかりません",
+          variant: "destructive"
+        });
+        return;
       }
 
-      // Edge Functionを呼び出してメールを送信
-      const result = await functions.post('send-contact-email', {
+      console.log('📧 Sending contact email with data:', {
         postId: post._row_id,
         postTitle: post.title,
         fromEmail: currentUser.email,
-        fromName: currentUser.displayName || currentUser.firstName || currentUser.email,
         toEmail: toEmail,
-        message: contactMessage,
-        postUrl: window.location.href
+        message: contactMessage
       });
 
-      if (result.success) {
-        toast({
-          title: "送信完了",
-          description: "投稿者に問い合わせメールを送信しました",
+      // Edge Functionを呼び出してメールを送信
+      try {
+        const result = await functions.post('send-contact-email', {
+          postId: post._row_id,
+          postTitle: post.title,
+          fromEmail: currentUser.email,
+          fromName: currentUser.displayName || currentUser.firstName || currentUser.email,
+          toEmail: toEmail,
+          message: contactMessage,
+          postUrl: window.location.href
         });
-        setIsContactModalOpen(false);
-        setContactMessage('');
-      } else {
-        throw new Error(result.error || '送信に失敗しました');
+
+        console.log('✅ Edge function result:', result);
+
+        if (result && result.success) {
+          toast({
+            title: "送信完了",
+            description: "投稿者に問い合わせメールを送信しました",
+          });
+          setIsContactModalOpen(false);
+          setContactMessage('');
+        } else {
+          throw new Error(result?.error || '送信に失敗しました');
+        }
+      } catch (functionError) {
+        console.error('❌ Function call error:', functionError);
+        throw new Error(functionError.message || 'Edge Functionの呼び出しに失敗しました');
       }
 
     } catch (error) {
