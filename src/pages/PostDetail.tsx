@@ -13,6 +13,7 @@ import Footer from '@/components/Footer';
 import SingleLocationMap from '@/components/SingleLocationMap';
 import db from '@/lib/shared/kliv-database';
 import auth from '@/lib/shared/kliv-auth';
+import functions from '@/lib/shared/kliv-functions';
 import { useToast } from '@/hooks/use-toast';
 
 const PostDetail = () => {
@@ -140,10 +141,13 @@ const PostDetail = () => {
               userProfile = profilesData[0];
               userName = userProfile.display_name || 'SverigeJP スタッフ';
 
-              // Store profile data
+              // Store profile data including email
               setUserProfiles(prev => ({
                 ...prev,
-                [postData._created_by]: userProfile
+                [postData._created_by]: {
+                  ...userProfile,
+                  email: userProfile.email || null
+                }
               }));
             } else {
               // Fallback to user data
@@ -553,18 +557,47 @@ const PostDetail = () => {
         return;
       }
 
-      toast({
-        title: "送信完了",
-        description: "問い合わせを送信しました",
+      console.log('📧 Sending contact inquiry:', {
+        postId: post._row_id,
+        postTitle: post.title,
+        fromEmail: currentUser.email,
+        toEmail: post.userProfile?.email,
+        message: contactMessage
       });
-      
-      setIsContactModalOpen(false);
-      setContactMessage('');
+
+      // 投稿者のメールアドレスを取得
+      const toEmail = post.userProfile?.email;
+      if (!toEmail) {
+        throw new Error('投稿者のメールアドレスが見つかりません');
+      }
+
+      // Edge Functionを呼び出してメールを送信
+      const result = await functions.post('send-contact-email', {
+        postId: post._row_id,
+        postTitle: post.title,
+        fromEmail: currentUser.email,
+        fromName: currentUser.displayName || currentUser.firstName || currentUser.email,
+        toEmail: toEmail,
+        message: contactMessage,
+        postUrl: window.location.href
+      });
+
+      if (result.success) {
+        toast({
+          title: "送信完了",
+          description: "投稿者に問い合わせメールを送信しました",
+        });
+        setIsContactModalOpen(false);
+        setContactMessage('');
+      } else {
+        throw new Error(result.error || '送信に失敗しました');
+      }
+
     } catch (error) {
       console.error('Error sending contact:', error);
       toast({
         title: "エラー",
-        description: "送信に失敗しました",
+        description: error.message || "送信に失敗しました",
         variant: "destructive"
       });
     } finally {
