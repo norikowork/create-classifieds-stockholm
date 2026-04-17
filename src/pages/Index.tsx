@@ -727,7 +727,11 @@ const Index = () => {
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
-                      <CardTitle className="text-lg line-clamp-2">{post.title}</CardTitle>
+                      <CardTitle className="text-lg line-clamp-2">
+                        <Link to={`/post/${post._row_id}`} className="hover:text-blue-600 transition-colors">
+                          {post.title}
+                        </Link>
+                      </CardTitle>
                       {/* Date and Price row */}
                       <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
                         <span>{formatDate(post._created_at)}</span>
@@ -900,7 +904,9 @@ const Index = () => {
                     {/* Content */}
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-start gap-2 mb-1">
-                        <h3 className="text-base font-semibold truncate">{post.title}</h3>
+                        <Link to={`/post/${post._row_id}`}>
+                          <h3 className="text-base font-semibold truncate hover:text-blue-600 transition-colors cursor-pointer">{post.title}</h3>
+                        </Link>
                       </div>
                       {/* Date and Price row */}
                       <div className="flex items-center gap-2 mb-2 text-xs text-gray-500">
