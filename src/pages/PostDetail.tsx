@@ -231,7 +231,7 @@ const PostDetail = () => {
       
       // Fallback to default image if no images
       if (!firstImageUrl) {
-        firstImageUrl = 'https://create-classifieds-stockholm.kliv.site/content/templates/sverigejplogo.png';
+        firstImageUrl = '/content/templates/sverigejplogo.png';
       }
       
       // Ensure image URL is absolute
@@ -239,7 +239,11 @@ const PostDetail = () => {
         firstImageUrl = 'https://create-classifieds-stockholm.kliv.site' + firstImageUrl;
       }
       
-      console.log('📸 Setting og:image to:', firstImageUrl);
+      // Add cache buster to image URL to prevent Facebook caching
+      const cacheBuster = Date.now();
+      const imageUrlWithCache = `${firstImageUrl}?v=${cacheBuster}`;
+      
+      console.log('📸 Setting og:image to:', imageUrlWithCache);
       
       // Update or create meta tags
       const updateMetaTag = (property, content) => {
@@ -254,25 +258,34 @@ const PostDetail = () => {
       
       const pageUrl = window.location.href;
       const title = post.title || 'Sverige.JP - スウェーデン日本コミュニティ';
-      const description = post.description || '';
+      const description = post.description ? post.description.substring(0, 200) : '';
       
+      // Set Open Graph tags
       updateMetaTag('og:title', title);
       updateMetaTag('og:description', description);
-      updateMetaTag('og:image', firstImageUrl);
+      updateMetaTag('og:image', imageUrlWithCache);
+      updateMetaTag('og:image:width', '1200');
+      updateMetaTag('og:image:height', '630');
+      updateMetaTag('og:image:alt', title);
       updateMetaTag('og:url', pageUrl);
       updateMetaTag('og:type', 'article');
+      updateMetaTag('og:site_name', 'Sverige.JP - スウェーデン日本コミュニティ');
+      updateMetaTag('og:locale', 'ja_JP');
       
       // Also set twitter card
       updateMetaTag('twitter:card', 'summary_large_image');
-      updateMetaTag('twitter:image', firstImageUrl);
+      updateMetaTag('twitter:image', imageUrlWithCache);
       updateMetaTag('twitter:title', title);
       updateMetaTag('twitter:description', description);
       
       console.log('✅ Open Graph meta tags updated:', {
         'og:title': title,
-        'og:image': firstImageUrl,
+        'og:image': imageUrlWithCache,
         'og:url': pageUrl
       });
+      
+      // Update document title as well
+      document.title = `${title} | Sverige.JP`;
     }
   }, [post]);
 
