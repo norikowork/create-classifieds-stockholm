@@ -144,15 +144,17 @@ const PostDetail = () => {
               console.log('👤 User profile found:', {
                 user_uuid: postData._created_by,
                 display_name: userProfile.display_name,
-                email: userProfile.email
+                email: userProfile.email,
+                contact_pref: userProfile.contact_pref
               });
 
-              // Store profile data including email
+              // Store profile data including email and contact_pref
               setUserProfiles(prev => ({
                 ...prev,
                 [postData._created_by]: {
                   ...userProfile,
-                  email: userProfile.email || null
+                  email: userProfile.email || null,
+                  contact_pref: userProfile.contact_pref || 'email'
                 }
               }));
             } else {
@@ -1424,17 +1426,19 @@ const PostDetail = () => {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-start space-x-2 p-3 border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
-                  <RadioGroupItem value="email" id="email" className="mt-1" />
-                  <div className="flex-1">
-                    <Label htmlFor="email" className="cursor-pointer font-medium text-gray-900">
-                      メールで連絡する
-                    </Label>
-                    <p className="text-xs text-gray-500 mt-1">
-                      あなたのメールアドレスが相手に伝わります
-                    </p>
+                {post.userProfile?.contact_pref !== 'dm_only' && (
+                  <div className="flex items-start space-x-2 p-3 border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
+                    <RadioGroupItem value="email" id="email" className="mt-1" />
+                    <div className="flex-1">
+                      <Label htmlFor="email" className="cursor-pointer font-medium text-gray-900">
+                        メールで連絡する
+                      </Label>
+                      <p className="text-xs text-gray-500 mt-1">
+                        あなたのメールアドレスが相手に伝わります
+                      </p>
+                    </div>
                   </div>
-                </div>
+                )}
               </RadioGroup>
             </div>
 
