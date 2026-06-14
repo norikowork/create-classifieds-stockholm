@@ -95,6 +95,11 @@ const Footer = () => {
                     プロフィール
                   </Link>
                 </li>
+                <li>
+                  <Link to="/help" className="text-gray-300 hover:text-white transition-colors">
+                    使い方・FAQ
+                  </Link>
+                </li>
               </ul>
             </div>
           </div>
