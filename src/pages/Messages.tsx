@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { ArrowLeft, Send, Mail, Trash2, MessageSquare } from 'lucide-react';
 import auth from '@/lib/shared/kliv-auth';
 import db from '@/lib/shared/kliv-database';
+import functions from '@/lib/shared/kliv-functions';
 import { getMessageLimit } from '@/constants/plans';
 import { useToast } from '@/hooks/use-toast';
 
@@ -258,6 +259,38 @@ const Messages = () => {
 
       await db.insert('messages', newMessage);
 
+      console.log('✅ Reply message sent successfully');
+
+      // 受信者のプロフィールを取得してメールアドレスを取得
+      const receiverProfiles = await db.query('user_profiles', {
+        user_uuid: `eq.${selectedConversation.other_uuid}`,
+        _deleted: 'eq.0'
+      });
+
+      const receiverProfile = receiverProfiles[0];
+      const receiverEmail = receiverProfile?.email;
+
+      if (receiverEmail) {
+        console.log('📬 Sending message notification to:', receiverEmail);
+
+        try {
+          const notificationResult = await functions.post('send-message-notification', {
+            toEmail: receiverEmail,
+            toName: receiverProfile?.display_name,
+            fromName: userProfile?.display_name || user.email || '自分',
+            postTitle: selectedConversation.post_title,
+            messagesUrl: `${window.location.origin}/messages`
+          });
+
+          console.log('✅ Message notification sent:', notificationResult);
+        } catch (notificationError) {
+          console.error('❌ Message notification error:', notificationError);
+          // 通知のエラーはメッセージ送信自体の成功に影響しない
+        }
+      } else {
+        console.log('⚠️ Receiver email not found, skipping notification');
+      }
+
       toast({
         title: '送信完了',
         description: 'メッセージを送信しました。',
@@ -318,6 +351,38 @@ const Messages = () => {
       };
 
       await db.insert('messages', newMessage);
+
+      console.log('✅ Email message sent successfully');
+
+      // 受信者のプロフィールを取得してメールアドレスを取得
+      const receiverProfiles = await db.query('user_profiles', {
+        user_uuid: `eq.${selectedConversation.other_uuid}`,
+        _deleted: 'eq.0'
+      });
+
+      const receiverProfile = receiverProfiles[0];
+      const receiverEmail = receiverProfile?.email;
+
+      if (receiverEmail) {
+        console.log('📬 Sending message notification to:', receiverEmail);
+
+        try {
+          const notificationResult = await functions.post('send-message-notification', {
+            toEmail: receiverEmail,
+            toName: receiverProfile?.display_name,
+            fromName: userProfile?.display_name || user.email || '自分',
+            postTitle: selectedConversation.post_title,
+            messagesUrl: `${window.location.origin}/messages`
+          });
+
+          console.log('✅ Message notification sent:', notificationResult);
+        } catch (notificationError) {
+          console.error('❌ Message notification error:', notificationError);
+          // 通知のエラーはメッセージ送信自体の成功に影響しない
+        }
+      } else {
+        console.log('⚠️ Receiver email not found, skipping notification');
+      }
 
       toast({
         title: '送信完了',
