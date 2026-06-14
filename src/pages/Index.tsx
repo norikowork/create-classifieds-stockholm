@@ -14,6 +14,7 @@ import { PostModal } from '@/components/PostModal';
 import Footer from '@/components/Footer';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import MapView from '@/components/MapView';
+import { statusLabels } from '@/constants/postLabels';
 
 const categoryIcons = {
   'cat-for-sale': ShoppingBag,
@@ -22,11 +23,6 @@ const categoryIcons = {
   'cat-events': Star,
   'cat-services': Wrench,
   'cat-bulletin': MessageSquare
-};
-
-const postTypeLabels = {
-  'free': '無料',
-  'paid': '有料'
 };
 
 const employmentTypeLabels = {
@@ -69,19 +65,6 @@ const Index = () => {
   const [priceSort, setPriceSort] = useState<'none' | 'asc' | 'desc'>('none');
   const [userCounty, setUserCounty] = useState<string | null>(null);
   const postsPerPage = 20; // Posts per page
-
-  // Post type labels
-  const postTypeLabels: Record<string, string> = {
-    'free': '無料',
-    'paid': '有料',
-    'job_seeking': '仕事探し',
-    'housing': '住居',
-    'event': 'イベント',
-    'services': 'サービス',
-    'for_sale': '販売',
-    'wanted': '探しています',
-    'bulletin': '掲示板'
-  };
 
   useEffect(() => {
     loadData();

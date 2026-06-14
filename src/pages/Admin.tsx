@@ -17,6 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useNavigate, Link } from 'react-router-dom';
 import { PostModal } from '@/components/PostModal';
 import Footer from '@/components/Footer';
+import { statusLabels } from '@/constants/postLabels';
 
 const categoryIcons = {
   'cat-sell': '🛍️',
@@ -24,19 +25,6 @@ const categoryIcons = {
   'cat-job': '💼',
   'cat-housing': '🏠',
   'cat-event': '📅'
-};
-
-const postTypeLabels = {
-  'free': '無料',
-  'paid': '有料'
-};
-
-const statusLabels = {
-  'active': '公開中',
-  'sold': '完了',
-  'expired': '期限切れ',
-  'flagged': '報告済み',
-  'removed': '削除'
 };
 
 const Admin = () => {

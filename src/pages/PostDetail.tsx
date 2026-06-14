@@ -16,6 +16,7 @@ import auth from '@/lib/shared/kliv-auth';
 import functions from '@/lib/shared/kliv-functions';
 import { checkIsAdmin } from '@/lib/isAdmin';
 import { useToast } from '@/hooks/use-toast';
+import { statusLabels, postTypeLabels } from '@/constants/postLabels';
 
 const PostDetail = () => {
   const { postId } = useParams();
@@ -38,13 +39,6 @@ const PostDetail = () => {
   const [nextPost, setNextPost] = useState(null);
   const [authModalTab, setAuthModalTab] = useState('login');
   const [isAdmin, setIsAdmin] = useState(false);
-
-  const postTypeLabels = {
-    'for_sale': '売ります',
-    'wanted': '探しています',
-    'job_offering': '仕事募集',
-    'job_seeking': '仕事探し'
-  };
 
   const conditionLabels = {
     'new': '新品',
@@ -814,7 +808,7 @@ const PostDetail = () => {
                         variant="secondary"
                         className="text-gray-600"
                       >
-                        {post.post_type === 'event' ? 'イベント' : postTypeLabels[post.post_type]}
+                        {post.post_type === 'event' ? 'イベント' : (postTypeLabels[post.post_type] ?? post.post_type)}
                       </Badge>
                       {post.condition && (
                         <Badge

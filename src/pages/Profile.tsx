@@ -17,6 +17,7 @@ import { content } from '@/lib/shared/kliv-content';
 import { useToast } from '@/hooks/use-toast';
 import { PostModal } from '@/components/PostModal';
 import Footer from '@/components/Footer';
+import { statusLabels, postTypeLabels } from '@/constants/postLabels';
 
 const categoryIcons = {
   'cat-for-sale': '🛍️',
@@ -25,21 +26,6 @@ const categoryIcons = {
   'cat-job-seeking': '👤',
   'cat-services': '🔧',
   'cat-housing': '🏠'
-};
-
-const postTypeLabels = {
-  'for_sale': '売ります',
-  'wanted': '探しています',
-  'job_offering': '仕事募集',
-  'job_seeking': '仕事探し'
-};
-
-const statusLabels = {
-  'active': '公開中',
-  'sold': '完了',
-  'expired': '期限切れ',
-  'flagged': '報告済み',
-  'removed': '削除'
 };
 
 const Profile = () => {
@@ -808,7 +794,7 @@ const Profile = () => {
                               {postTypeLabels[post.post_type]}
                             </Badge>
                             <Badge className={getStatusColor(post.status)}>
-                              {statusLabels[post.status]}
+                              {statusLabels[post.status] ?? post.status}
                             </Badge>
                           </CardDescription>
                         </div>
@@ -893,7 +879,7 @@ const Profile = () => {
                       {postTypeLabels[selectedPost.post_type]}
                     </Badge>
                     <Badge className={getStatusColor(selectedPost.status)}>
-                      {statusLabels[selectedPost.status]}
+                      {statusLabels[selectedPost.status] ?? selectedPost.status}
                     </Badge>
                   </div>
                 </div>
