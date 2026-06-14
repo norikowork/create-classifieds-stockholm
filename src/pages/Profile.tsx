@@ -35,6 +35,7 @@ const Profile = () => {
   const [userPosts, setUserPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [editForm, setEditForm] = useState({
     display_name: '',
     bio: '',
@@ -134,6 +135,18 @@ const Profile = () => {
       });
       
       setUserPosts(postsWithImages.sort((a, b) => b._created_at - a._created_at));
+      
+      // Load unread message count
+      try {
+        const unreadMessages = await db.query('messages', {
+          to_uuid: `eq.${currentUser.userUuid}`,
+          is_read: 'eq.0',
+          _deleted: 'eq.0'
+        });
+        setUnreadCount(unreadMessages.length);
+      } catch (error) {
+        console.error('Error loading unread count:', error);
+      }
     } catch (error) {
       console.error('Error loading user data:', error);
     } finally {
@@ -507,6 +520,14 @@ const Profile = () => {
             <div className="flex items-center gap-2">
               {user ? (
                 <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="sm" className="relative" onClick={() => navigate('/messages')}>
+                    <Mail className="w-4 h-4" />
+                    {unreadCount > 0 && (
+                      <Badge className="absolute -top-1 -right-1 h-5 min-w-[20px] flex items-center justify-center px-1 bg-red-500 text-white text-xs">
+                        {unreadCount}
+                      </Badge>
+                    )}
+                  </Button>
                   <Button variant="outline" size="sm" onClick={handleSignOut}>
                     ログアウト
                   </Button>

@@ -1,6 +1,6 @@
 // Sweden.JP - Stockholm Japanese Community - Main index page
 import { useState, useEffect } from 'react';
-import { Search, Plus, User, Briefcase, ShoppingBag, Home, Phone, Wrench, Shield, Image as ImageIcon, ArrowRight, Music, Trophy, Palette, Users, GraduationCap, Star, ChevronLeft, ChevronRight, List, Grid3X3, MapPin, MessageSquare, Heart, Handshake } from 'lucide-react';
+import { Search, Plus, User, Briefcase, ShoppingBag, Home, Phone, Wrench, Shield, Image as ImageIcon, ArrowRight, Music, Trophy, Palette, Users, GraduationCap, Star, ChevronLeft, ChevronRight, List, Grid3X3, MapPin, MessageSquare, Heart, Handshake, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -64,6 +64,7 @@ const Index = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [priceSort, setPriceSort] = useState<'none' | 'asc' | 'desc'>('none');
   const [userCounty, setUserCounty] = useState<string | null>(null);
+  const [unreadCount, setUnreadCount] = useState(0);
   const postsPerPage = 20; // Posts per page
 
   useEffect(() => {
@@ -114,6 +115,27 @@ const Index = () => {
       }
     };
     checkAdmin();
+  }, [user]);
+
+  // Load unread message count
+  useEffect(() => {
+    const loadUnreadCount = async () => {
+      if (user && user.userUuid) {
+        try {
+          const unreadMessages = await db.query('messages', {
+            to_uuid: `eq.${user.userUuid}`,
+            is_read: 'eq.0',
+            _deleted: 'eq.0'
+          });
+          setUnreadCount(unreadMessages.length);
+        } catch (error) {
+          console.error('Error loading unread count:', error);
+        }
+      } else {
+        setUnreadCount(0);
+      }
+    };
+    loadUnreadCount();
   }, [user]);
 
   const loadData = async () => {
@@ -563,6 +585,14 @@ const Index = () => {
                   <Button variant="ghost" size="sm" className="h-8 text-xs px-2 sm:px-3" onClick={() => navigate('/profile')}>
                     <span className="hidden sm:inline">プロフィール</span>
                     <span className="sm:hidden">プロフ</span>
+                  </Button>
+                  <Button variant="ghost" size="sm" className="h-8 text-xs px-2 sm:px-3 relative" onClick={() => navigate('/messages')}>
+                    <Mail className="w-4 h-4" />
+                    {unreadCount > 0 && (
+                      <Badge className="absolute -top-1 -right-1 h-5 min-w-[20px] flex items-center justify-center px-1 bg-red-500 text-white text-xs">
+                        {unreadCount}
+                      </Badge>
+                    )}
                   </Button>
                   {isAdmin && (
                     <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => navigate('/admin')}>
