@@ -12,6 +12,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import db from '@/lib/shared/kliv-database';
 import content from '@/lib/shared/kliv-content';
 import auth from '@/lib/shared/kliv-auth';
+import { checkIsAdmin } from '@/lib/isAdmin';
 import { useToast } from '@/hooks/use-toast';
 import { ShoppingBag, Search, Briefcase, User, Trash2, Package, MapPin, Mail, Phone, Image as ImageIcon, X, DollarSign } from 'lucide-react';
 import { format } from 'date-fns';
@@ -415,6 +416,7 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
   const [subcategories, setSubcategories] = useState([]);
   const [selectedCounty, setSelectedCounty] = useState('');
   const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -461,13 +463,24 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
   });
   const [error, setError] = useState('');
 
-  const isAdmin = user?.isPrimaryOrg || user?.userMetadata?.is_admin;
+
 
   useEffect(() => {
     if (isOpen) {
       fetchData();
     }
   }, [isOpen, user]);
+
+  useEffect(() => {
+    // 非同期に管理者判定を行う
+    const checkAdmin = async () => {
+      if (user) {
+        const adminStatus = await checkIsAdmin(user);
+        setIsAdmin(adminStatus);
+      }
+    };
+    checkAdmin();
+  }, [user]);
 
   useEffect(() => {
     if (isOpen && editingPost && categories.length > 0 && locations.length > 0) {

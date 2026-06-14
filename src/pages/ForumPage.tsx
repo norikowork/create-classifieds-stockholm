@@ -10,6 +10,7 @@ import ForumTopicForm from '@/components/ForumTopicForm';
 import { FORUM_CATEGORIES } from '@/constants/forumCategories';
 import db from '@/lib/shared/kliv-database.js';
 import auth from '@/lib/shared/kliv-auth.js';
+import { checkIsAdmin } from '@/lib/isAdmin';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { ja } from 'date-fns/locale';
@@ -49,6 +50,7 @@ export default function ForumPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [replyCounts, setReplyCounts] = useState<Record<number, number>>({});
   const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
 
@@ -60,6 +62,17 @@ export default function ForumPage() {
     loadTopics();
     loadUser();
   }, []);
+
+  useEffect(() => {
+    // 非同期に管理者判定を行う
+    const checkAdmin = async () => {
+      if (user) {
+        const adminStatus = await checkIsAdmin(user);
+        setIsAdmin(adminStatus);
+      }
+    };
+    checkAdmin();
+  }, [user]);
 
   useEffect(() => {
     filterTopics();
@@ -188,7 +201,7 @@ export default function ForumPage() {
                     <span className="hidden sm:inline">プロフィール</span>
                     <span className="sm:hidden">プロフ</span>
                   </Button>
-                  {user.isPrimaryOrg && (
+                  {isAdmin && (
                     <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => window.location.href = '/admin'}>
                       <Shield className="w-4 h-4" />
                     </Button>

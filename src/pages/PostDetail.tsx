@@ -14,6 +14,7 @@ import SingleLocationMap from '@/components/SingleLocationMap';
 import db from '@/lib/shared/kliv-database';
 import auth from '@/lib/shared/kliv-auth';
 import functions from '@/lib/shared/kliv-functions';
+import { checkIsAdmin } from '@/lib/isAdmin';
 import { useToast } from '@/hooks/use-toast';
 
 const PostDetail = () => {
@@ -36,6 +37,7 @@ const PostDetail = () => {
   const [previousPost, setPreviousPost] = useState(null);
   const [nextPost, setNextPost] = useState(null);
   const [authModalTab, setAuthModalTab] = useState('login');
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const postTypeLabels = {
     'for_sale': '売ります',
@@ -238,6 +240,17 @@ const PostDetail = () => {
     loadSubcategories();
     checkAuthStatus();
   }, [postId]);
+
+  // Check admin status
+  useEffect(() => {
+    const checkAdmin = async () => {
+      if (user) {
+        const adminStatus = await checkIsAdmin(user);
+        setIsAdmin(adminStatus);
+      }
+    };
+    checkAdmin();
+  }, [user]);
 
   // Set Open Graph meta tags for Facebook sharing
   useEffect(() => {
@@ -751,7 +764,7 @@ const PostDetail = () => {
                     <span className="hidden sm:inline">プロフィール</span>
                     <span className="sm:hidden">プロフ</span>
                   </Button>
-                  {user.isPrimaryOrg && (
+                  {isAdmin && (
                     <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => navigate('/admin')}>
                       <Shield className="w-4 h-4" />
                     </Button>

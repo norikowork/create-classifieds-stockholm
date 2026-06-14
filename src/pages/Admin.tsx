@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import auth from '@/lib/shared/kliv-auth';
 import db from '@/lib/shared/kliv-database';
+import { checkIsAdmin } from '@/lib/isAdmin';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate, Link } from 'react-router-dom';
 import { PostModal } from '@/components/PostModal';
@@ -37,8 +38,6 @@ const statusLabels = {
   'flagged': '報告済み',
   'removed': '削除'
 };
-
-const ADMIN_EMAIL = 'noriko@rational.ventures';
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -87,8 +86,8 @@ const Admin = () => {
         return;
       }
       
-      // Check if user is admin (either isPrimaryTeam or specific admin email)
-      const isAdminUser = currentUser.isPrimaryTeam || currentUser.email === ADMIN_EMAIL;
+      // 統一された管理者判定関数を使用
+      const isAdminUser = await checkIsAdmin(currentUser);
       
       if (!isAdminUser) {
         navigate('/');

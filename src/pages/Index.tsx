@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import db from '@/lib/shared/kliv-database';
 import auth from '@/lib/shared/kliv-auth';
+import { checkIsAdmin } from '@/lib/isAdmin';
 import { AuthModal } from '@/components/AuthModal';
 import { PostModal } from '@/components/PostModal';
 import Footer from '@/components/Footer';
@@ -56,6 +57,7 @@ const Index = () => {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('list');
@@ -119,6 +121,17 @@ const Index = () => {
       loadData();
     }
   }, [isPostModalOpen]);
+
+  // Check admin status
+  useEffect(() => {
+    const checkAdmin = async () => {
+      if (user) {
+        const adminStatus = await checkIsAdmin(user);
+        setIsAdmin(adminStatus);
+      }
+    };
+    checkAdmin();
+  }, [user]);
 
   const loadData = async () => {
     try {
@@ -568,7 +581,7 @@ const Index = () => {
                     <span className="hidden sm:inline">プロフィール</span>
                     <span className="sm:hidden">プロフ</span>
                   </Button>
-                  {user.isPrimaryOrg && (
+                  {isAdmin && (
                     <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => navigate('/admin')}>
                       <Shield className="w-4 h-4" />
                     </Button>
