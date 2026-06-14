@@ -6,12 +6,59 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { ArrowLeft, Send, Mail, Trash2, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Send, Mail, Trash2, MessageSquare, Copy } from 'lucide-react';
 import auth from '@/lib/shared/kliv-auth';
 import db from '@/lib/shared/kliv-database';
 import functions from '@/lib/shared/kliv-functions';
 import { getMessageLimit } from '@/constants/plans';
 import { useToast } from '@/hooks/use-toast';
+
+// メールアドレスを抽出するヘルパー関数
+const extractEmails = (text: string): string[] => {
+  const emailRegex = /[\w.+-]+@[\w-]+\.[\w.-]+/g;
+  return Array.from(text.matchAll(emailRegex)).map(match => match[0]);
+};
+
+// メールアドレスをリンク化するヘルパー関数
+const linkifyEmails = (text: string): React.ReactNode => {
+  const emailRegex = /[\w.+-]+@[\w-]+\.[\w.-]+/g;
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let matchIndex = 0;
+
+  const matches = Array.from(text.matchAll(emailRegex));
+
+  matches.forEach((match, index) => {
+    const email = match[0];
+    const emailStart = match.index;
+
+    // メールアドレスの前のテキストを追加
+    if (emailStart > lastIndex) {
+      parts.push(text.substring(lastIndex, emailStart));
+    }
+
+    // メールアドレスをリンクとして追加
+    parts.push(
+      <a
+        key={`email-${index}`}
+        href={`mailto:${email}`}
+        className="text-blue-600 underline hover:text-blue-800"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {email}
+      </a>
+    );
+
+    lastIndex = emailStart + email.length;
+  });
+
+  // 残りのテキストを追加
+  if (lastIndex < text.length) {
+    parts.push(text.substring(lastIndex));
+  }
+
+  return parts.length > 0 ? parts : text;
+};
 
 interface Message {
   _row_id: number;
@@ -482,6 +529,24 @@ const Messages = () => {
 
   const limitText = limit === Infinity ? '無制限' : `${limit}`;
 
+  // コピーハンドラー
+  const copyToClipboard = async (text: string, type: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({
+        title: 'コピー完了',
+        description: `${type}をコピーしました`,
+      });
+    } catch (error) {
+      console.error('Copy failed:', error);
+      toast({
+        title: 'コピー失敗',
+        description: 'コピーに失敗しました',
+        variant: 'destructive'
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* ヘッダー */}
@@ -586,23 +651,51 @@ const Messages = () => {
                 <div className="space-y-4">
                   {selectedConversation.messages
                     .sort((a, b) => a._created_at - b._created_at)
-                    .map(msg => (
-                      <div
-                        key={msg._row_id}
-                        className={`flex ${msg.from_uuid === user?.userUuid ? 'justify-end' : 'justify-start'}`}
-                      >
-                        <div className={`max-w-[70%] ${msg.from_uuid === user?.userUuid ? 'text-right' : 'text-left'}`}>
-                          <div className={`inline-block px-4 py-2 rounded-lg ${
-                            msg.from_uuid === user?.userUuid
-                              ? 'bg-blue-500 text-white'
-                              : 'bg-gray-200 text-gray-900'
-                          }`}>
-                            <p className="text-sm">{msg.body}</p>
+                    .map(msg => {
+                      const isOwnMessage = msg.from_uuid === user?.userUuid;
+                      const emails = extractEmails(msg.body);
+                      
+                      return (
+                        <div
+                          key={msg._row_id}
+                          className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}
+                        >
+                          <div className={`max-w-[70%] ${isOwnMessage ? 'text-right' : 'text-left'}`}>
+                            <div className={`inline-block px-4 py-2 rounded-lg ${
+                              isOwnMessage
+                                ? 'bg-blue-500 text-white'
+                                : 'bg-gray-200 text-gray-900'
+                            }`}>
+                              <p className="text-sm whitespace-pre-wrap">
+                                {linkifyEmails(msg.body)}
+                              </p>
+                            </div>
+                            <div className="flex items-center justify-end mt-1 space-x-2">
+                              <p className="text-xs text-gray-400">{formatTime(msg._created_at)}</p>
+                              {emails.length > 0 && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-5 px-2 text-xs text-blue-600 hover:text-blue-800"
+                                  onClick={() => copyToClipboard(emails[0], 'メールアドレス')}
+                                >
+                                  <Copy className="w-3 h-3 mr-1" />
+                                  メアド
+                                </Button>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-5 w-5 p-0"
+                                onClick={() => copyToClipboard(msg.body, 'メッセージ本文')}
+                              >
+                                <Copy className="w-3 h-3 text-gray-400" />
+                              </Button>
+                            </div>
                           </div>
-                          <p className="text-xs text-gray-400 mt-1">{formatTime(msg._created_at)}</p>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                 </div>
               </CardContent>
             </Card>
