@@ -78,6 +78,23 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) =>
     try {
       const user = await auth.signIn(loginEmail, loginPassword);
       
+      // ブロックチェック：user_profiles を取得して is_blocked を確認
+      const profiles = await db.query('user_profiles', {
+        user_uuid: `eq.${user.userUuid}`,
+        _deleted: 'eq.0'
+      });
+      
+      const profile = profiles[0];
+      
+      // ブロックされている場合はサインアウトしてエラーを表示
+      if (profile && profile.is_blocked === 1) {
+        await auth.signOut();
+        setError('このアカウントは利用停止中です。運営にお問い合わせください。');
+        setIsLoading(false);
+        return; // onAuthSuccess や onClose は呼ばずに中断
+      }
+      
+      // ブロックされていない場合は通常通りログインを続行
       onAuthSuccess(user);
       onClose();
       toast({
