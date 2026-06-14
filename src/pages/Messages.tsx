@@ -6,12 +6,13 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { ArrowLeft, Send, Mail, Trash2, MessageSquare, Copy } from 'lucide-react';
+import { Send, Mail, Trash2, MessageSquare, Copy, User, Shield } from 'lucide-react';
 import auth from '@/lib/shared/kliv-auth';
 import db from '@/lib/shared/kliv-database';
 import functions from '@/lib/shared/kliv-functions';
 import { getMessageLimit } from '@/constants/plans';
 import { useToast } from '@/hooks/use-toast';
+import { checkIsAdmin } from '@/lib/isAdmin';
 
 // メールアドレスを抽出するヘルパー関数
 const extractEmails = (text: string): string[] => {
@@ -100,6 +101,8 @@ const Messages = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showEmailDialog, setShowEmailDialog] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   // 認証チェック
   useEffect(() => {
@@ -111,6 +114,11 @@ const Messages = () => {
           return;
         }
         setUser(currentUser);
+        
+        // 管理者チェック
+        const adminStatus = await checkIsAdmin(currentUser);
+        setIsAdmin(adminStatus);
+        
         await loadData(currentUser.userUuid);
       } catch (error) {
         console.error('Auth check failed:', error);
@@ -137,6 +145,12 @@ const Messages = () => {
       );
 
       setMyMessages(uniqueMessages);
+
+      // 未読メッセージ数を計算
+      const unreadMessages = uniqueMessages.filter(
+        msg => msg.to_uuid === userUuid && msg.is_read === 0
+      );
+      setUnreadCount(unreadMessages.length);
 
       // ユーザープロフィールを取得
       const profiles = await db.query('user_profiles', {
@@ -189,7 +203,11 @@ const Messages = () => {
       
       // 相手の表示名を更新（まだ空の場合）
       if (message.from_uuid === userUuid && !conv.other_name) {
-        conv.other_name = message.to_uuid === userUuid ? '' : message.to_uuid;
+        // 自分が送信したメッセージの場合、相手の表示名はまだ不明（後で取得）
+        // ここでは空文字のままにしておく
+      } else if (message.from_uuid !== userUuid && !conv.other_name) {
+        // 相手が送信したメッセージの場合、相手の表示名を使用
+        conv.other_name = message.from_name;
       }
     }
 
@@ -227,11 +245,11 @@ const Messages = () => {
           if (profiles.length > 0 && profiles[0].display_name) {
             conv.other_name = profiles[0].display_name;
           } else {
-            conv.other_name = '不明なユーザー';
+            conv.other_name = 'ユーザー';
           }
         } catch (error) {
           console.error('Error fetching user name:', error);
-          conv.other_name = '不明なユーザー';
+          conv.other_name = 'ユーザー';
         }
       }
     }
@@ -496,6 +514,20 @@ const Messages = () => {
     }
   };
 
+  const handleSignOut = async () => {
+    try {
+      await auth.signOut();
+      navigate('/');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast({
+        title: 'エラー',
+        description: 'ログアウトに失敗しました',
+        variant: 'destructive'
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -551,19 +583,68 @@ const Messages = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* ヘッダー */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-          <Link to="/" className="flex items-center text-gray-700 hover:text-gray-900">
-            <ArrowLeft className="w-5 h-5 mr-2" />
-            <span className="font-medium">ホームに戻る</span>
-          </Link>
-          <h1 className="text-xl font-bold">メッセージ</h1>
-          <div className="w-24"></div>
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <Link to="/" className="flex items-center space-x-2 flex-shrink-0 hover:opacity-80 transition-opacity">
+              <img 
+                src="/content/templates/sverigejplogo.png" 
+                alt="Sverige.JP Logo"
+                className="h-10 w-10 sm:h-12 sm:w-12 object-contain flex-shrink-0"
+                style={{ width: '48px', height: '48px' }}
+              />
+              <div className="flex flex-col">
+                <h1 className="text-xl font-bold text-gray-900 hidden sm:block">Sverige.JP</h1>
+                <h1 className="text-base font-bold text-gray-900 sm:hidden">Sverige.JP</h1>
+                <p className="text-xs text-gray-600 hidden md:block">スウェーデン日本コミュニティ</p>
+              </div>
+            </Link>
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+              {user ? (
+                <div className="flex items-center gap-1 sm:gap-2 flex-wrap justify-end">
+                  <User className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 flex-shrink-0" />
+                  <span className="text-xs sm:text-sm text-gray-700 truncate max-w-[100px] sm:max-w-[150px]">
+                    {userProfile?.display_name || user.display_name || user.firstName || user.email?.split('@')[0]}
+                  </span>
+                  <Button variant="ghost" size="sm" className="h-8 text-xs px-2 sm:px-3" onClick={() => navigate('/profile')}>
+                    <span className="hidden sm:inline">プロフィール</span>
+                    <span className="sm:hidden">プロフ</span>
+                  </Button>
+                  <Button variant="ghost" size="sm" className="h-8 text-xs px-2 sm:px-3 relative" onClick={() => navigate('/messages')}>
+                    <Mail className="w-4 h-4" />
+                    {unreadCount > 0 && (
+                      <Badge className="absolute -top-1 -right-1 h-5 min-w-[20px] flex items-center justify-center px-1 bg-red-500 text-white text-xs">
+                        {unreadCount}
+                      </Badge>
+                    )}
+                  </Button>
+                  {isAdmin && (
+                    <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => navigate('/admin')}>
+                      <Shield className="w-4 h-4" />
+                    </Button>
+                  )}
+                  <Button variant="outline" size="sm" className="h-8 text-xs px-2" onClick={handleSignOut}>
+                    <span className="hidden sm:inline">ログアウト</span>
+                    <span className="sm:hidden">ログアウト</span>
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => navigate('/')}>
+                    ログイン
+                  </Button>
+                  <Button size="sm" className="h-8 text-xs px-2" onClick={() => navigate('/')}>
+                    新規登録
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
+      </header>
 
-      <div className="max-w-4xl mx-auto px-4 py-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* 残量表示 */}
         <Card className="mb-6">
           <CardContent className="py-4">
@@ -608,7 +689,7 @@ const Messages = () => {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center space-x-2 mb-1">
                           <h3 className="font-semibold text-gray-900 truncate">
-                            {conv.other_name || conv.other_uuid}
+                            {conv.other_name || 'ユーザー'}
                           </h3>
                           {conv.unreadCount > 0 && (
                             <Badge variant="destructive">{conv.unreadCount}</Badge>
@@ -633,7 +714,7 @@ const Messages = () => {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle>{selectedConversation.other_name || selectedConversation.other_uuid}</CardTitle>
+                    <CardTitle>{selectedConversation.other_name || 'ユーザー'}</CardTitle>
                     <CardDescription>{selectedConversation.post_title}</CardDescription>
                   </div>
                   <Button
