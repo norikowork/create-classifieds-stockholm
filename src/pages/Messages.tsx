@@ -688,14 +688,14 @@ const Messages = () => {
                     <div className="flex items-start justify-between">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center space-x-2 mb-1">
-                          <h3 className="font-semibold text-gray-900 truncate">
-                            {conv.other_name || 'ユーザー'}
+                          <h3 className="font-semibold text-gray-900">
+                            {conv.other_name || 'ユーザー'}さんからのメッセージ
                           </h3>
                           {conv.unreadCount > 0 && (
                             <Badge variant="destructive">{conv.unreadCount}</Badge>
                           )}
                         </div>
-                        <p className="text-sm text-gray-600 mb-1">{conv.post_title}</p>
+                        <p className="text-sm text-gray-600 mb-1">投稿: {conv.post_title}</p>
                         <p className="text-sm text-gray-500 truncate">{conv.lastMessage}</p>
                       </div>
                       <div className="ml-4 text-right">
@@ -714,8 +714,8 @@ const Messages = () => {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle>{selectedConversation.other_name || 'ユーザー'}</CardTitle>
-                    <CardDescription>{selectedConversation.post_title}</CardDescription>
+                    <CardTitle>{selectedConversation.other_name || 'ユーザー'}さんからのメッセージ</CardTitle>
+                    <CardDescription>投稿: {selectedConversation.post_title}</CardDescription>
                   </div>
                   <Button
                     variant="ghost"
