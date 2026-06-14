@@ -797,7 +797,26 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
       if (!currentUser || !currentUser.userUuid) {
         throw new Error('ログインしていません。右上の「ログイン」ボタンからログインしてください。');
       }
-      
+
+      // ブロックチェック：ユーザーの user_uuid で user_profiles を取得し is_blocked を確認
+      const profiles = await db.query('user_profiles', {
+        user_uuid: `eq.${currentUser.userUuid}`,
+        _deleted: 'eq.0'
+      });
+
+      const profile = profiles[0];
+
+      // ブロックされている場合は投稿を中止してエラーを表示
+      if (profile && profile.is_blocked === 1) {
+        toast({
+          title: 'エラー',
+          description: 'アカウントが利用停止中のため投稿できません。',
+          variant: 'destructive'
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
       if (editingPost && editingPost._created_by !== currentUser.userUuid && !isAdmin) {
         throw new Error('この投稿を編集する権限がありません。自分の投稿のみ編集できます。');
       }
