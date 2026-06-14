@@ -40,7 +40,8 @@ const Profile = () => {
     bio: '',
     location: '',
     phone: '',
-    county: ''
+    county: '',
+    contact_pref: 'email'
   });
   const [locations, setLocations] = useState([]);
   const [selectedPost, setSelectedPost] = useState(null);
@@ -82,7 +83,8 @@ const Profile = () => {
           bio: profile.bio || '',
           location: profile.location || '',
           phone: profile.phone || '',
-          county: profile.county || ''
+          county: profile.county || '',
+          contact_pref: profile.contact_pref || 'email'
         });
       }
       
@@ -183,7 +185,8 @@ const Profile = () => {
           bio: updatedProfile.bio || '',
           location: updatedProfile.location || '',
           phone: updatedProfile.phone || '',
-          county: updatedProfile.county || ''
+          county: updatedProfile.county || '',
+          contact_pref: updatedProfile.contact_pref || 'email'
         });
       }
 
@@ -244,7 +247,8 @@ const Profile = () => {
           {
             profile_photo_url: photoUrl,
             last_active: now,
-            _updated_at: now
+            _updated_at: now,
+            contact_pref: editForm.contact_pref
           }
         );
       } else {
@@ -636,6 +640,19 @@ const Profile = () => {
                     </div>
                     <div>
                       <label className="text-sm font-medium text-gray-600 flex items-center">
+                        <Mail className="w-4 h-4 mr-1" />
+                        連絡の受け取り方
+                      </label>
+                      <p>
+                        {userProfile?.contact_pref === 'dm_only' ? (
+                          <span>サイト内メッセージのみ（メール非公開）</span>
+                        ) : (
+                          <span>メールで受け取る（おすすめ）</span>
+                        )}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-600 flex items-center">
                         <MapPin className="w-4 h-4 mr-1" />
                         詳細住所
                       </label>
@@ -698,6 +715,31 @@ const Profile = () => {
                           </SelectContent>
                         </Select>
                       </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="contact_pref">連絡の受け取り方</Label>
+                      <Select 
+                        value={editForm.contact_pref} 
+                        onValueChange={(value) => setEditForm(prev => ({ ...prev, contact_pref: value }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="連絡の受け取り方を選択してください" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="email">
+                            <div className="flex flex-col">
+                              <span className="font-medium">メールで受け取る（おすすめ）</span>
+                              <span className="text-xs text-gray-500">あなたの投稿への連絡を、サイト内メッセージとメールの両方で受け取れます</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="dm_only">
+                            <div className="flex flex-col">
+                              <span className="font-medium">メールを隠す（サイト内メッセージのみ）</span>
+                              <span className="text-xs text-gray-500">メールアドレスを相手に知られず、サイト内メッセージだけで連絡を受け取ります。信用できたら相手に個別でメールアドレスを伝えられます</span>
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div>
                       <Label htmlFor="location">詳細住所</Label>
