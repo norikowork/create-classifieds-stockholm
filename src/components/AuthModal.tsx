@@ -40,14 +40,33 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) =>
       });
       
       if (existingProfile.length === 0) {
+        // 新規作成：user_uuid, email, display_name, role: 'user', is_blocked: 0, phone: ''
         await db.insert('user_profiles', {
           user_uuid: user.userUuid,
-          display_name: user.name || user.email,
+          email: user.email || '',
+          display_name: user.name || user.email || '',
+          role: 'user',
+          is_blocked: 0,
           phone: ''
         });
+      } else {
+        // 既存のプロフィールがある場合
+        const profile = existingProfile[0];
+        
+        // emailが空または未設定の場合のみ、emailを更新（他の項目は変更しない）
+        if (!profile.email || profile.email === '') {
+          await db.update('user_profiles', { 
+            _row_id: `eq.${profile._row_id}` 
+          }, { 
+            email: user.email || '' 
+          });
+        }
+        
+        // roleやis_blockedは既存値を維持（上書きしない）
       }
     } catch (err) {
       // Profile creation is best-effort — don't block login
+      console.error('Profile ensure error:', err);
     }
   };
 
