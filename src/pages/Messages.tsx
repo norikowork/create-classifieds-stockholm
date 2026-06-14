@@ -689,7 +689,7 @@ const Messages = () => {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center space-x-2 mb-1">
                           <h3 className="text-sm font-semibold text-gray-900">
-                            {conv.other_name || 'ユーザー'}さんからのメッセージ
+                            <span className="font-bold">{conv.other_name || 'ユーザー'}</span>さんからのメッセージ
                           </h3>
                           {conv.unreadCount > 0 && (
                             <Badge variant="destructive">{conv.unreadCount}</Badge>
@@ -714,7 +714,7 @@ const Messages = () => {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-semibold text-gray-900 mb-1">{selectedConversation.other_name || 'ユーザー'}さんからのメッセージ</p>
+                    <p className="text-sm font-semibold text-gray-900 mb-1"><span className="font-bold">{selectedConversation.other_name || 'ユーザー'}</span>さんからのメッセージ</p>
                     <p className="text-sm text-gray-600">投稿: {selectedConversation.post_title}</p>
                   </div>
                   <Button
