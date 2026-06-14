@@ -688,7 +688,7 @@ const Messages = () => {
                     <div className="flex items-start justify-between">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center space-x-2 mb-1">
-                          <h3 className="font-semibold text-gray-900">
+                          <h3 className="text-sm font-semibold text-gray-900">
                             {conv.other_name || 'ユーザー'}さんからのメッセージ
                           </h3>
                           {conv.unreadCount > 0 && (
@@ -714,8 +714,8 @@ const Messages = () => {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle>{selectedConversation.other_name || 'ユーザー'}さんからのメッセージ</CardTitle>
-                    <CardDescription>投稿: {selectedConversation.post_title}</CardDescription>
+                    <p className="text-sm font-semibold text-gray-900 mb-1">{selectedConversation.other_name || 'ユーザー'}さんからのメッセージ</p>
+                    <p className="text-sm text-gray-600">投稿: {selectedConversation.post_title}</p>
                   </div>
                   <Button
                     variant="ghost"
