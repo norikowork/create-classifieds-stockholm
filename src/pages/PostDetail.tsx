@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import AuthModal from '@/components/AuthModal';
 import Footer from '@/components/Footer';
 import SingleLocationMap from '@/components/SingleLocationMap';
@@ -17,6 +18,7 @@ import functions from '@/lib/shared/kliv-functions';
 import { checkIsAdmin } from '@/lib/isAdmin';
 import { useToast } from '@/hooks/use-toast';
 import { statusLabels, postTypeLabels } from '@/constants/postLabels';
+import { getMessageLimit } from '@/constants/plans';
 
 const PostDetail = () => {
   const { postId } = useParams();
@@ -39,6 +41,8 @@ const PostDetail = () => {
   const [nextPost, setNextPost] = useState(null);
   const [authModalTab, setAuthModalTab] = useState('login');
   const [isAdmin, setIsAdmin] = useState(false);
+  const [contactMethod, setContactMethod] = useState('dm'); // 連絡方法: 'dm' または 'email'
+  const [showMessageButton, setShowMessageButton] = useState(false); // メッセージを見るボタン表示用
 
   const conditionLabels = {
     'new': '新品',
@@ -567,6 +571,115 @@ const PostDetail = () => {
       return;
     }
 
+    if (contactMethod === 'dm') {
+      await handleDirectMessageSubmit();
+    } else {
+      await handleEmailSubmit();
+    }
+  };
+
+  // サイト内メッセージ(DM)で送信
+  const handleDirectMessageSubmit = async () => {
+    const currentUser = await auth.getUser();
+    if (!currentUser || !currentUser.userUuid) {
+      toast({
+        title: "エラー",
+        description: "ログインが必要です",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const me = currentUser.userUuid;
+    const other = post._created_by;
+
+    // 自分自身の投稿には連絡不可
+    if (me === other) {
+      toast({
+        title: "エラー",
+        description: "自分の投稿には連絡できません",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      // 送信者のプロフィールを取得
+      const profiles = await db.query('user_profiles', {
+        user_uuid: `eq.${me}`,
+        _deleted: 'eq.0'
+      });
+
+      const profile = profiles[0];
+      const fromName = profile?.display_name || currentUser.displayName || currentUser.email || '自分';
+
+      // 上限チェック
+      const [sentMessages, receivedMessages] = await Promise.all([
+        db.query('messages', { from_uuid: `eq.${me}`, _deleted: 'eq.0' }),
+        db.query('messages', { to_uuid: `eq.${me}`, _deleted: 'eq.0' })
+      ]);
+
+      const allMessages = [...sentMessages, ...receivedMessages];
+      const uniqueMessages = Array.from(
+        new Map(allMessages.map(msg => [msg._row_id, msg])).values()
+      );
+
+      const limit = getMessageLimit(profile);
+
+      if (uniqueMessages.length >= limit) {
+        const limitText = limit === Infinity ? '無制限' : `${limit}通`;
+        toast({
+          title: "送信できません",
+          description: `メッセージが上限に達しています。受信箱で古い会話を削除するか、有料プラン(月30kr・近日対応)をご利用ください。`,
+          variant: "destructive"
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      // conversation_keyを生成
+      const sortedUuids = [me, other].sort();
+      const conversation_key = `${post._row_id}:${sortedUuids.join('_')}`;
+
+      // メッセージを送信
+      await db.insert('messages', {
+        post_id: post._row_id,
+        post_title: post.title,
+        conversation_key,
+        from_uuid: me,
+        from_name: fromName,
+        to_uuid: other,
+        body: contactMessage,
+        is_read: 0
+      });
+
+      toast({
+        title: "送信完了",
+        description: "メッセージを送信しました。返信は『メッセージ』画面で確認できます。",
+      });
+
+      setIsContactModalOpen(false);
+      setContactMessage('');
+      setIsSubmitting(false);
+
+      // 「メッセージを見る」ボタンで遷移できるようにする
+      // ユーザーがクリックしたら遷移するためのstateをセット
+      setShowMessageButton(true);
+
+    } catch (error) {
+      console.error('Error sending direct message:', error);
+      toast({
+        title: "エラー",
+        description: error.message || "送信に失敗しました",
+        variant: "destructive"
+      });
+      setIsSubmitting(false);
+    }
+  };
+
+  // メールで送信（既存の処理）
+  const handleEmailSubmit = async () => {
     setIsSubmitting(true);
     try {
       const currentUser = await auth.getUser();
@@ -1235,14 +1348,21 @@ const PostDetail = () => {
                   <p className="text-gray-600 text-sm">
                     この投稿に興味がありますか？下のボタンから問い合わせてください。
                   </p>
-                  <Button 
-                    onClick={handleContactClick}
-                    className="w-full"
-                    size="lg"
-                  >
-                    <Send className="w-4 h-4 mr-2" />
-                    問い合わせる
-                  </Button>
+                  {/* 自分の投稿の場合は連絡ボタンを非表示 */}
+                  {user && user.userUuid === post._created_by ? (
+                    <div className="text-sm text-gray-500 italic">
+                      自分の投稿には連絡できません
+                    </div>
+                  ) : (
+                    <Button 
+                      onClick={handleContactClick}
+                      className="w-full"
+                      size="lg"
+                    >
+                      <Send className="w-4 h-4 mr-2" />
+                      問い合わせる
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -1257,6 +1377,36 @@ const PostDetail = () => {
             <DialogTitle>投稿者に問い合わせる</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {/* 送信方法の選択 */}
+            <div>
+              <Label>送信方法</Label>
+              <RadioGroup value={contactMethod} onValueChange={setContactMethod} className="mt-2">
+                <div className="flex items-start space-x-2 p-3 border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
+                  <RadioGroupItem value="dm" id="dm" className="mt-1" />
+                  <div className="flex-1">
+                    <Label htmlFor="dm" className="cursor-pointer font-medium text-gray-900">
+                      サイト内メッセージで送る（おすすめ）
+                    </Label>
+                    <p className="text-xs text-gray-500 mt-1">
+                      メールアドレスは相手に知られません
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-2 p-3 border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
+                  <RadioGroupItem value="email" id="email" className="mt-1" />
+                  <div className="flex-1">
+                    <Label htmlFor="email" className="cursor-pointer font-medium text-gray-900">
+                      メールで連絡する
+                    </Label>
+                    <p className="text-xs text-gray-500 mt-1">
+                      あなたのメールアドレスが相手に伝わります
+                    </p>
+                  </div>
+                </div>
+              </RadioGroup>
+            </div>
+
+            {/* メッセージ入力欄 */}
             <div>
               <Label htmlFor="message">メッセージ</Label>
               <Textarea
@@ -1267,10 +1417,30 @@ const PostDetail = () => {
                 rows={5}
               />
             </div>
+
+            {/* メッセージを見るボタン（DM送信成功後に表示） */}
+            {showMessageButton && (
+              <div className="pt-2">
+                <Button
+                  onClick={() => navigate('/messages')}
+                  variant="outline"
+                  className="w-full"
+                  type="button"
+                >
+                  <MessageSquare className="w-4 h-4 mr-2" />
+                  メッセージを見る
+                </Button>
+              </div>
+            )}
+
+            {/* 送信ボタン */}
             <div className="flex justify-end gap-2">
               <Button
                 variant="outline"
-                onClick={() => setIsContactModalOpen(false)}
+                onClick={() => {
+                  setIsContactModalOpen(false);
+                  setShowMessageButton(false);
+                }}
               >
                 キャンセル
               </Button>
