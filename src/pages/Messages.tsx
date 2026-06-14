@@ -301,7 +301,8 @@ const Messages = () => {
         from_name: userProfile?.display_name || user.email || '自分',
         to_uuid: selectedConversation.other_uuid,
         body: replyText,
-        is_read: 0
+        is_read: 0,
+        _deleted: 0
       };
 
       await db.insert('messages', newMessage);
@@ -394,7 +395,8 @@ const Messages = () => {
         from_name: userProfile?.display_name || user.email || '自分',
         to_uuid: selectedConversation.other_uuid,
         body: emailText,
-        is_read: 0
+        is_read: 0,
+        _deleted: 0
       };
 
       await db.insert('messages', newMessage);

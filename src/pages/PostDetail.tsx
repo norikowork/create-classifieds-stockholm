@@ -705,7 +705,8 @@ useEffect(() => {
           from_name: fromName,
           to_uuid: other,
           body: contactMessage,
-          is_read: 0
+          is_read: 0,
+          _deleted: 0
         });
 
         console.log('✅ Direct message sent successfully');
