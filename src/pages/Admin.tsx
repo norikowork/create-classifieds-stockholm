@@ -60,10 +60,10 @@ const Admin = () => {
   const [editingUser, setEditingUser] = useState(null);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [userForm, setUserForm] = useState({
-    first_name: '',
-    last_name: '',
+    display_name: '',
     email: '',
-    enabled: true
+    role: 'user',
+    is_blocked: false
   });
   const [stats, setStats] = useState({
     totalUsers: 0,
@@ -107,81 +107,20 @@ const Admin = () => {
 
   const loadAdminData = async () => {
     try {
-      const [users, posts, flagged, categoriesData, userProfiles] = await Promise.all([
-        db.query('users', { _deleted: 'eq.0' }),
+      const [userProfiles, posts, flagged, categoriesData] = await Promise.all([
+        db.query('user_profiles', { _deleted: 'eq.0', order: '_created_at.desc' }),
         db.query('posts', { _deleted: 'eq.0', order: '_created_at.desc' }),
         db.query('posts', { status: 'eq.flagged', order: '_created_at.desc' }),
-        db.query('categories', { _deleted: 'eq.0' }),
-        db.query('user_profiles', { _deleted: 'eq.0' })
+        db.query('categories', { _deleted: 'eq.0' })
       ]);
       
-      // 統合ユーザーリストを作成（usersテーブル + user_profilesテーブル）
-      const combinedUsers = [];
-      const seenUserUuids = new Set();
-      
-      // usersテーブルのユーザーを追加
-      users.forEach(user => {
-        seenUserUuids.add(user.user_uuid);
-        const profile = userProfiles.find(p => p.user_uuid === user.user_uuid);
-        
-        // metadataをパース
-        let metadata = {};
-        try {
-          if (user.metadata) {
-            metadata = typeof user.metadata === 'string' ? JSON.parse(user.metadata) : user.metadata;
-          }
-        } catch (e) {
-          metadata = {};
-        }
-        
-        combinedUsers.push({
-          ...user,
-          display_name: profile?.display_name || user.first_name || user.email,
-          profile_exists: !!profile,
-          user_metadata: metadata,
-          is_blocked: profile?.is_blocked || 0
-        });
-      });
-      
-      // user_profilesテーブルにのみ存在するユーザーを追加（認証SDKで作成されたユーザー）
-      userProfiles.forEach(profile => {
-        if (!seenUserUuids.has(profile.user_uuid)) {
-          // display_nameからメールアドレスを抽出
-          const emailMatch = profile.display_name.match(/[\w.-]+@[\w.-]+\.\w+/);
-          const userEmail = emailMatch ? emailMatch[0] : '';
-          
-          combinedUsers.push({
-            user_uuid: profile.user_uuid,
-            email: userEmail, // display_nameに含まれるメールアドレスを抽出
-            first_name: profile.display_name,
-            last_name: '',
-            _created_at: profile._created_at,
-            _updated_at: profile._updated_at,
-            metadata: '{}',
-            user_metadata: { blocked: profile.is_blocked === 1 },
-            display_name: profile.display_name,
-            profile_exists: true,
-            is_auth_sdk_user: true,
-            is_blocked: profile.is_blocked || 0
-          });
-        }
-      });
-      
-      setAllUsers(combinedUsers);
+      // ユーザーリストはuser_profilesのみを使用
+      setAllUsers(userProfiles);
       
       // Add creator display name to posts
       const postsWithCreatorNames = posts.map(post => {
         const creatorProfile = userProfiles.find(profile => profile.user_uuid === post._created_by);
-        const creatorUser = users.find(user => user.user_uuid === post._created_by);
-        let displayName = '不明';
-        
-        if (creatorProfile?.display_name) {
-          displayName = creatorProfile.display_name;
-        } else if (creatorUser?.first_name || creatorUser?.last_name) {
-          displayName = `${creatorUser.first_name || ''} ${creatorUser.last_name || ''}`.trim();
-        } else if (creatorUser?.email) {
-          displayName = creatorUser.email;
-        }
+        const displayName = creatorProfile?.display_name || '不明';
         
         return {
           ...post,
@@ -192,16 +131,7 @@ const Admin = () => {
       // Add creator display name to flagged posts
       const flaggedWithCreatorNames = flagged.map(post => {
         const creatorProfile = userProfiles.find(profile => profile.user_uuid === post._created_by);
-        const creatorUser = users.find(user => user.user_uuid === post._created_by);
-        let displayName = '不明';
-        
-        if (creatorProfile?.display_name) {
-          displayName = creatorProfile.display_name;
-        } else if (creatorUser?.first_name || creatorUser?.last_name) {
-          displayName = `${creatorUser.first_name || ''} ${creatorUser.last_name || ''}`.trim();
-        } else if (creatorUser?.email) {
-          displayName = creatorUser.email;
-        }
+        const displayName = creatorProfile?.display_name || '不明';
         
         return {
           ...post,
@@ -213,10 +143,10 @@ const Admin = () => {
       setFlaggedPosts(flaggedWithCreatorNames);
       setCategories(categoriesData);
       
-      // Calculate stats (統合ユーザーリストを使用)
-      const blockedCount = combinedUsers.filter(u => u.user_metadata?.blocked || u.is_blocked === 1).length;
+      // Calculate stats
+      const blockedCount = userProfiles.filter(u => u.is_blocked === 1).length;
       setStats({
-        totalUsers: combinedUsers.length,
+        totalUsers: userProfiles.length,
         totalPosts: posts.length,
         flaggedPosts: flagged.length,
         blockedUsers: blockedCount
@@ -273,12 +203,6 @@ const Admin = () => {
 
   const handleDeleteUser = async (userUuid) => {
     try {
-      // ユーザーを削除（論理削除）
-      await db.update('users',
-        { user_uuid: `eq.${userUuid}` },
-        { _deleted: 1 }
-      );
-      
       // ユーザープロフィールを削除
       await db.update('user_profiles',
         { user_uuid: `eq.${userUuid}` },
@@ -321,28 +245,14 @@ const Admin = () => {
 
   const handleBlockUser = async (userUuid) => {
     try {
-      const userData = allUsers.find(u => u.user_uuid === userUuid);
-      
-      if (userData.is_auth_sdk_user) {
-        // 認証SDKユーザーの場合、user_profiles.is_blockedを更新
-        await db.update('user_profiles',
-          { user_uuid: `eq.${userUuid}` },
-          { 
-            is_blocked: 1,
-            _updated_at: Math.floor(Date.now() / 1000)
-          }
-        );
-      } else {
-        // 通常ユーザーの場合、users.metadataを更新
-        const metadata = { ...userData.user_metadata, blocked: true };
-        await db.update('users',
-          { user_uuid: `eq.${userUuid}` },
-          { 
-            metadata: JSON.stringify(metadata),
-            _updated_at: Math.floor(Date.now() / 1000)
-          }
-        );
-      }
+      // 常にuser_profiles.is_blockedを更新
+      await db.update('user_profiles',
+        { user_uuid: `eq.${userUuid}` },
+        { 
+          is_blocked: 1,
+          _updated_at: Math.floor(Date.now() / 1000)
+        }
+      );
       
       toast({
         title: "ユーザーブロック完了",
@@ -362,28 +272,14 @@ const Admin = () => {
 
   const handleUnblockUser = async (userUuid) => {
     try {
-      const userData = allUsers.find(u => u.user_uuid === userUuid);
-      
-      if (userData.is_auth_sdk_user) {
-        // 認証SDKユーザーの場合、user_profiles.is_blockedを更新
-        await db.update('user_profiles',
-          { user_uuid: `eq.${userUuid}` },
-          { 
-            is_blocked: 0,
-            _updated_at: Math.floor(Date.now() / 1000)
-          }
+      // 常にuser_profiles.is_blockedを更新
+      await db.update('user_profiles',
+        { user_uuid: `eq.${userUuid}` },
+        { 
+          is_blocked: 0,
+          _updated_at: Math.floor(Date.now() / 1000)
+        }
         );
-      } else {
-        // 通常ユーザーの場合、users.metadataを更新
-        const metadata = { ...userData.user_metadata, blocked: false };
-        await db.update('users',
-          { user_uuid: `eq.${userUuid}` },
-          { 
-            metadata: JSON.stringify(metadata),
-            _updated_at: Math.floor(Date.now() / 1000)
-          }
-        );
-      }
       
       toast({
         title: "ユーザーブロック解除完了",
@@ -476,12 +372,12 @@ const Admin = () => {
     }
     
     if (userFilter === 'blocked') {
-      filtered = filtered.filter(user => user.user_metadata?.blocked || user.is_blocked === 1);
+      filtered = filtered.filter(user => user.is_blocked === 1);
     } else if (userFilter === 'active') {
-      filtered = filtered.filter(user => !user.user_metadata?.blocked && user.is_blocked !== 1);
+      filtered = filtered.filter(user => user.is_blocked !== 1);
     } else if (userFilter === 'unverified') {
-      // 未承認ユーザー：認証SDKユーザーではなく、メールアドレスがないユーザー
-      filtered = filtered.filter(user => !user.is_auth_sdk_user && (!user.email || user.email === ''));
+      // 未承認ユーザー：メールアドレスがないユーザー
+      filtered = filtered.filter(user => !user.email || user.email === '');
     }
     
     return filtered;
@@ -567,28 +463,24 @@ const Admin = () => {
   const handleEditUser = (userItem) => {
     setEditingUser(userItem);
     setUserForm({
-      first_name: userItem.first_name || '',
-      last_name: userItem.last_name || '',
+      display_name: userItem.display_name || '',
       email: userItem.email || '',
-      enabled: userItem.enabled !== false
+      role: userItem.role || 'user',
+      is_blocked: userItem.is_blocked === 1
     });
     setIsUserModalOpen(true);
   };
 
   const handleSaveUser = async () => {
     try {
-      const metadata = editingUser.user_metadata || {};
-      await db.update('users',
+      await db.update('user_profiles',
         { _row_id: `eq.${editingUser._row_id}` },
         {
-          first_name: userForm.first_name,
-          last_name: userForm.last_name,
+          display_name: userForm.display_name,
           email: userForm.email,
-          enabled: userForm.enabled ? 1 : 0,
-          user_metadata: JSON.stringify({
-            ...metadata,
-            blocked: !userForm.enabled
-          })
+          role: userForm.role,
+          is_blocked: userForm.is_blocked ? 1 : 0,
+          _updated_at: Math.floor(Date.now() / 1000)
         }
       );
       
@@ -838,7 +730,7 @@ const Admin = () => {
                               {userItem.display_name || '不明'}
                             </h3>
                             {/* アカウント状態バッジ */}
-                            {userItem.is_auth_sdk_user || userItem.email ? (
+                            {userItem.email ? (
                               <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                                 <CheckCircle className="h-3 w-3 mr-1" />
                                 有効
@@ -849,15 +741,10 @@ const Admin = () => {
                                 未承認
                               </Badge>
                             )}
-                            {(userItem.user_metadata?.blocked || userItem.is_blocked === 1) && (
+                            {userItem.is_blocked === 1 && (
                               <Badge variant="destructive">
                                 <Ban className="h-3 w-3 mr-1" />
                                 ブロック済み
-                              </Badge>
-                            )}
-                            {userItem.is_auth_sdk_user && (
-                              <Badge variant="outline" className="bg-purple-50">
-                                認証SDK
                               </Badge>
                             )}
                             {userItem.email === user?.email && (
@@ -885,7 +772,7 @@ const Admin = () => {
                               >
                                 <Edit className="h-4 w-4" />
                               </Button>
-                              {userItem.user_metadata?.blocked ? (
+                              {userItem.is_blocked === 1 ? (
                                 <Button
                                   variant="outline"
                                   size="sm"
@@ -1115,17 +1002,17 @@ const Admin = () => {
             {selectedUser && (
               <div className="space-y-4">
                 <div>
-                  <p><strong>名前:</strong> {selectedUser.first_name} {selectedUser.last_name}</p>
-                  <p><strong>メール:</strong> {selectedUser.email}</p>
+                  <p><strong>表示名:</strong> {selectedUser.display_name || '不明'}</p>
+                  <p><strong>メール:</strong> {selectedUser.email || '未設定'}</p>
                   <p><strong>登録日:</strong> {formatDate(selectedUser._created_at)}</p>
-                  {selectedUser.user_metadata?.blocked && (
+                  {selectedUser.is_blocked === 1 && (
                     <Badge variant="destructive" className="mt-2">
                       ブロック済み
                     </Badge>
                   )}
                 </div>
                 <div className="flex justify-end space-x-2">
-                  {selectedUser.user_metadata?.blocked ? (
+                  {selectedUser.is_blocked === 1 ? (
                     <Button
                       variant="outline"
                       onClick={() => {
@@ -1233,19 +1120,11 @@ const Admin = () => {
             {editingUser && (
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="firstName">名前</Label>
+                  <Label htmlFor="displayName">表示名</Label>
                   <Input
-                    id="firstName"
-                    value={userForm.first_name}
-                    onChange={(e) => setUserForm({...userForm, first_name: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="lastName">名字</Label>
-                  <Input
-                    id="lastName"
-                    value={userForm.last_name}
-                    onChange={(e) => setUserForm({...userForm, last_name: e.target.value})}
+                    id="displayName"
+                    value={userForm.display_name}
+                    onChange={(e) => setUserForm({...userForm, display_name: e.target.value})}
                   />
                 </div>
                 <div>
@@ -1257,15 +1136,30 @@ const Admin = () => {
                     onChange={(e) => setUserForm({...userForm, email: e.target.value})}
                   />
                 </div>
+                <div>
+                  <Label htmlFor="role">ロール</Label>
+                  <Select 
+                    value={userForm.role} 
+                    onValueChange={(value) => setUserForm({...userForm, role: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="user">一般ユーザー</SelectItem>
+                      <SelectItem value="admin">管理者</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="flex items-center space-x-2">
                   <input
                     type="checkbox"
-                    id="enabled"
-                    checked={userForm.enabled}
-                    onChange={(e) => setUserForm({...userForm, enabled: e.target.checked})}
+                    id="isBlocked"
+                    checked={userForm.is_blocked}
+                    onChange={(e) => setUserForm({...userForm, is_blocked: e.target.checked})}
                     className="w-4 h-4"
                   />
-                  <Label htmlFor="enabled">有効（ブロックされていない）</Label>
+                  <Label htmlFor="isBlocked">ブロック済み</Label>
                 </div>
                 <div className="flex justify-end space-x-2">
                   <Button variant="outline" onClick={() => setIsUserModalOpen(false)}>
