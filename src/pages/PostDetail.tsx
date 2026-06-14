@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, MapPin, Calendar, DollarSign, User, Mail, Phone, Send, X, Image as ImageIcon, MessageSquare, Home, Shield, ChevronLeft, ChevronRight, Briefcase, Building, TrendingUp, Package, Share2, Link2, Linkedin, Twitter, Facebook } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, DollarSign, User, Mail, Phone, Send, X, Image as ImageIcon, MessageSquare, Home, Shield, ChevronLeft, ChevronRight, Briefcase, Building, TrendingUp, Package, Share2, Link2, Linkedin, Twitter, Facebook, AlertCircle, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -44,6 +45,8 @@ const PostDetail = () => {
   const [contactMethod, setContactMethod] = useState('dm'); // 連絡方法: 'dm' または 'email'
   const [showMessageButton, setShowMessageButton] = useState(false); // メッセージを見るボタン表示用
   const [unreadCount, setUnreadCount] = useState(0);
+  const [contactError, setContactError] = useState('');
+  const [contactSuccess, setContactSuccess] = useState('');
 
   const conditionLabels = {
     'new': '新品',
@@ -273,6 +276,14 @@ const PostDetail = () => {
     };
     loadUnreadCount();
   }, [user]);
+
+// Reset contact error/success when modal closes
+useEffect(() => {
+  if (!isContactModalOpen) {
+    setContactError('');
+    setContactSuccess('');
+  }
+}, [isContactModalOpen]);
 
   // Set Open Graph meta tags for Facebook sharing
   useEffect(() => {
@@ -576,6 +587,9 @@ const PostDetail = () => {
       setIsAuthModalOpen(true);
       return;
     }
+    // モーダルを開くときにエラー・成功メッセージをリセット
+    setContactError('');
+    setContactSuccess('');
     setIsContactModalOpen(true);
   };
 
@@ -594,6 +608,10 @@ const PostDetail = () => {
       });
       return;
     }
+
+    // エラー・成功メッセージをクリア
+    setContactError('');
+    setContactSuccess('');
 
     if (contactMethod === 'dm') {
       await handleDirectMessageSubmit();
@@ -616,6 +634,17 @@ const PostDetail = () => {
 
     const me = currentUser.userUuid;
     const other = post._created_by;
+
+    // 投稿者UUIDチェック
+    if (!other) {
+      setContactError('この投稿には連絡先が設定されていません');
+      toast({
+        title: "エラー",
+        description: "この投稿には連絡先が設定されていません",
+        variant: "destructive"
+      });
+      return;
+    }
 
     // 自分自身の投稿には連絡不可
     if (me === other) {
@@ -667,18 +696,43 @@ const PostDetail = () => {
       const conversation_key = `${post._row_id}:${sortedUuids.join('_')}`;
 
       // メッセージを送信
-      await db.insert('messages', {
-        post_id: post._row_id,
-        post_title: post.title,
-        conversation_key,
-        from_uuid: me,
-        from_name: fromName,
-        to_uuid: other,
-        body: contactMessage,
-        is_read: 0
-      });
+      try {
+        await db.insert('messages', {
+          post_id: post._row_id,
+          post_title: post.title,
+          conversation_key,
+          from_uuid: me,
+          from_name: fromName,
+          to_uuid: other,
+          body: contactMessage,
+          is_read: 0
+        });
 
-      console.log('✅ Direct message sent successfully');
+        console.log('✅ Direct message sent successfully');
+
+        setContactSuccess('メッセージを送信しました。返信は『メッセージ』画面で確認できます。');
+        toast({
+          title: "送信完了",
+          description: "メッセージを送信しました。返信は『メッセージ』画面で確認できます。",
+        });
+
+        setIsContactModalOpen(false);
+        setContactMessage('');
+        setIsSubmitting(false);
+
+        // 「メッセージを見る」ボタンで遷移できるようにする
+        // ユーザーがクリックしたら遷移するためのstateをセット
+        setShowMessageButton(true);
+      } catch (insertError) {
+        console.error('❌ Message insert error:', insertError);
+        setContactError('保存に失敗しました: ' + (insertError.message || insertError));
+        toast({
+          title: "エラー",
+          description: '保存に失敗しました: ' + (insertError.message || insertError),
+          variant: "destructive"
+        });
+        setIsSubmitting(false);
+      }
 
       // 受信者のプロフィールを取得してメールアドレスを取得
       const receiverProfiles = await db.query('user_profiles', {
@@ -725,6 +779,7 @@ const PostDetail = () => {
 
     } catch (error) {
       console.error('Error sending direct message:', error);
+      setContactError('送信に失敗しました: ' + (error.message || error));
       toast({
         title: "エラー",
         description: error.message || "送信に失敗しました",
@@ -741,6 +796,7 @@ const PostDetail = () => {
       const currentUser = await auth.getUser();
       if (!currentUser) {
         setIsSubmitting(false);
+        setContactError('ログインが必要です');
         toast({
           title: "エラー",
           description: "ログインが必要です",
@@ -770,6 +826,7 @@ const PostDetail = () => {
           creatorEmail: post.creator_email,
           createdBy: post._created_by
         });
+        setContactError('投稿者のメールアドレスが見つかりません');
         toast({
           title: "エラー",
           description: "投稿者のメールアドレスが見つかりません",
@@ -801,6 +858,7 @@ const PostDetail = () => {
         console.log('✅ Edge function result:', result);
 
         if (result && result.success) {
+          setContactSuccess('投稿者に問い合わせメールを送信しました');
           toast({
             title: "送信完了",
             description: "投稿者に問い合わせメールを送信しました",
@@ -812,11 +870,13 @@ const PostDetail = () => {
         }
       } catch (functionError) {
         console.error('❌ Function call error:', functionError);
+        setContactError('送信に失敗しました: ' + (functionError.message || functionError));
         throw new Error(functionError.message || 'Edge Functionの呼び出しに失敗しました');
       }
 
     } catch (error) {
       console.error('Error sending contact:', error);
+      setContactError('送信に失敗しました: ' + (error.message || error));
       toast({
         title: "エラー",
         description: error.message || "送信に失敗しました",
@@ -1484,6 +1544,20 @@ const PostDetail = () => {
               />
             </div>
 
+            {/* エラー・成功メッセージ表示 */}
+            {contactError && (
+              <Alert variant="destructive" className="my-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{contactError}</AlertDescription>
+              </Alert>
+            )}
+            {contactSuccess && (
+              <Alert className="my-4 bg-green-50 border-green-200">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+                <AlertDescription className="text-green-800">{contactSuccess}</AlertDescription>
+              </Alert>
+            )}
+
             {/* メッセージを見るボタン（DM送信成功後に表示） */}
             {showMessageButton && (
               <div className="pt-2">
@@ -1506,6 +1580,8 @@ const PostDetail = () => {
                 onClick={() => {
                   setIsContactModalOpen(false);
                   setShowMessageButton(false);
+                  setContactError('');
+                  setContactSuccess('');
                 }}
               >
                 キャンセル
