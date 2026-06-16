@@ -358,6 +358,16 @@ const Index = () => {
         });
       }
       
+      // 古いイベントを表示から除外（1ヶ月前より古いイベントは非表示）
+      const now = new Date();
+      const oneMonthAgo = Math.floor(new Date(now.getFullYear(), now.getMonth() - 1, now.getDate()).getTime() / 1000);
+      postsData = postsData.filter(post => {
+        if (post.post_type === 'event' && post.event_date) {
+          return post.event_date >= oneMonthAgo;
+        }
+        return true; // イベント以外は常に表示
+      });
+      
       // Parse images JSON for each post
       const postsWithImages = await Promise.all(postsData.map(async post => {
         let images = [];
@@ -492,7 +502,18 @@ const Index = () => {
           locationName: location?.name_en || location?.name_ja || 'Ej angivet'
         };
       }));
-      setAllPosts(postsWithImages);
+      
+      // 古いイベントを表示から除外（1ヶ月前より古いイベントは非表示）
+      const now = new Date();
+      const oneMonthAgo = Math.floor(new Date(now.getFullYear(), now.getMonth() - 1, now.getDate()).getTime() / 1000);
+      const postsFiltered = postsWithImages.filter(post => {
+        if (post.post_type === 'event' && post.event_date) {
+          return post.event_date >= oneMonthAgo;
+        }
+        return true; // イベント以外は常に表示
+      });
+      
+      setAllPosts(postsFiltered);
     } catch (error) {
       console.error('Error loading posts:', error);
     }
@@ -531,18 +552,17 @@ const Index = () => {
 
   const getMonthOptions = () => {
     const options = [];
+    const now = new Date();
     
-    // 2025年11月から2026年10月までを生成
-    for (let month = 11; month <= 12; month++) {
-      const value = `2025-${month.toString().padStart(2, '0')}`;
-      const label = `2025年${month}月`;
-      options.push({ value, label });
-    }
-    
-    for (let month = 1; month <= 10; month++) {
-      const value = `2026-${month.toString().padStart(2, '0')}`;
-      const label = `2026年${month}月`;
-      options.push({ value, label });
+    // 先月(-1) から6ヶ月先(+6) まで動的に生成
+    for (let i = -1; i <= 6; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+      const y = d.getFullYear();
+      const m = d.getMonth() + 1;
+      options.push({ 
+        value: `${y}-${m.toString().padStart(2, '0')}`, 
+        label: `${y}年${m}月` 
+      });
     }
     
     return options;
