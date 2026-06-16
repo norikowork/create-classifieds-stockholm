@@ -934,9 +934,6 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
                           .map((subcategory: any) => (
                             <SelectItem key={subcategory.uuid} value={subcategory.uuid}>
                               {subcategory.name_ja}
-                              {subcategory.price > 0 && (
-                                <span className="ml-2 text-orange-600 font-semibold">({subcategory.price}SEK)</span>
-                              )}
                             </SelectItem>
                           ))}
                       </SelectContent>
