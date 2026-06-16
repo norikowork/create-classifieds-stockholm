@@ -283,8 +283,17 @@ const Index = () => {
     } else {
       setSearchParams({});
     }
-    // イベントカテゴリー以外が選択されたら月選択をクリア
-    if (categoryUuid !== 'cat-events') {
+    
+    // イベントカテゴリーが選択されたら月選択をセット
+    if (categoryUuid === 'cat-events') {
+      // 月選択が空なら今月をセット
+      if (!selectedMonth) {
+        const now = new Date();
+        const currentMonth = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+        setSelectedMonth(currentMonth);
+      }
+    } else {
+      // イベントカテゴリー以外が選択されたら月選択をクリア
       setSelectedMonth('');
     }
   };
