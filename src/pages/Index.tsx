@@ -661,27 +661,6 @@ const Index = () => {
             </Button>
           </div>
 
-          {/* Month Filter for Events - Only show when events category is selected */}
-          {selectedCategory === 'cat-events' && (
-            <div className="mb-4">
-              <div className="flex items-center gap-4">
-                <label className="text-sm font-medium text-gray-700">イベント月別：</label>
-                <Select value={selectedMonth} onValueChange={handleMonthChange}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="月を選択" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {getMonthOptions().map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          )}
-
           {/* Categories and View Toggle */}
           <div className="flex flex-wrap gap-2 mb-6">
             <Button
@@ -764,6 +743,27 @@ const Index = () => {
             </div>
           </div>
         </div>
+
+        {/* Month Filter for Events - Only show when events category is selected */}
+        {selectedCategory === 'cat-events' && (
+          <div className="mb-6">
+            <div className="flex items-center gap-4">
+              <label className="text-sm font-medium text-gray-700">イベント月別：</label>
+              <Select value={selectedMonth} onValueChange={handleMonthChange}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="月を選択" />
+                </SelectTrigger>
+                <SelectContent>
+                  {getMonthOptions().map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        )}
 
         {/* Posts Display based on View Mode */}
         {viewMode === 'grid' && (
