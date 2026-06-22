@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Shield, Users, FileText, AlertTriangle, Ban, Check, X, Eye, Search, Filter, Trash, Plus, Edit, CheckCircle, Clock } from 'lucide-react';
+import { Shield, Users, FileText, AlertTriangle, Ban, Check, X, Eye, Search, Filter, Trash, Plus, Edit, CheckCircle, Clock, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -144,6 +144,96 @@ const Admin = () => {
       toast({
         title: "データ読み込みエラー",
         description: "管理データの読み込みに失敗しました",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleBackupAllData = async () => {
+    try {
+      toast({
+        title: "バックアップ中...",
+        description: "全データを取得中です",
+      });
+
+      // 全テーブルを取得（_deletedで絞らず、削除済みも含めて全件）
+      const [
+        usersData,
+        userProfilesData,
+        postsData,
+        categoriesData,
+        subcategoriesData,
+        locationsData,
+        forumTopicsData,
+        forumRepliesData,
+        messagesData
+      ] = await Promise.all([
+        // usersは読み取りのみ（認証システムテーブル）
+        db.query('users', {}).catch(e => {
+          console.warn('Failed to fetch users:', e);
+          return [];
+        }),
+        db.query('user_profiles', {}),
+        db.query('posts', {}),
+        db.query('categories', {}),
+        db.query('subcategories', {}),
+        db.query('locations', {}),
+        db.query('forum_topics', {}),
+        db.query('forum_replies', {}),
+        db.query('messages', {})
+      ]);
+
+      // バックアップデータを構造化
+      const backupData = {
+        exported_at: new Date().toISOString(),
+        version: '1.0',
+        tables: {
+          users: usersData,
+          user_profiles: userProfilesData,
+          posts: postsData,
+          categories: categoriesData,
+          subcategories: subcategoriesData,
+          locations: locationsData,
+          forum_topics: forumTopicsData,
+          forum_replies: forumRepliesData,
+          messages: messagesData
+        },
+        stats: {
+          total_users: usersData.length,
+          total_user_profiles: userProfilesData.length,
+          total_posts: postsData.length,
+          total_categories: categoriesData.length,
+          total_subcategories: subcategoriesData.length,
+          total_locations: locationsData.length,
+          total_forum_topics: forumTopicsData.length,
+          total_forum_replies: forumRepliesData.length,
+          total_messages: messagesData.length
+        }
+      };
+
+      // JSONファイルとしてダウンロード
+      const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const today = new Date();
+      const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      
+      link.href = url;
+      link.download = `sverige-jp-backup-${dateStr}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "バックアップ完了",
+        description: "バックアップをダウンロードしました",
+      });
+    } catch (error) {
+      console.error('Backup failed:', error);
+      toast({
+        title: "バックアップエラー",
+        description: `エラーが発生しました: ${error.message}`,
         variant: "destructive"
       });
     }
@@ -568,6 +658,34 @@ const Admin = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Backup Section */}
+        <Card className="bg-blue-50 border-blue-200">
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <div>
+                <CardTitle className="text-blue-900">データベースバックアップ</CardTitle>
+                <p className="text-sm text-blue-700 mt-1">
+                  ※定期的(月1回など)にダウンロードして保管することをおすすめします
+                </p>
+              </div>
+              <Button 
+                onClick={handleBackupAllData}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                全データをバックアップ(ダウンロード)
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-sm text-blue-700 space-y-1">
+              <p>• バックアップには全テーブルのデータが含まれます（削除済みデータも含む）</p>
+              <p>• ファイル形式: JSON (sverige-jp-backup-YYYY-MM-DD.json)</p>
+              <p>• 含まれるテーブル: users, user_profiles, posts, categories, subcategories, locations, forum_topics, forum_replies, messages</p>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Main Content */}
         <Tabs defaultValue="posts" className="space-y-6">
