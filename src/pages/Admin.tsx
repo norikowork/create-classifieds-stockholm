@@ -183,6 +183,37 @@ const Admin = () => {
         db.query('messages', {})
       ]);
 
+      // 画像ファイルを収集（重複を除く）
+      const imageFilesSet = new Set<string>();
+
+      // posts の images を収集
+      postsData.forEach(post => {
+        if (post.images) {
+          try {
+            const images = typeof post.images === 'string' ? JSON.parse(post.images) : post.images;
+            if (Array.isArray(images)) {
+              images.forEach(img => {
+                if (img && typeof img === 'string') {
+                  imageFilesSet.add(img);
+                }
+              });
+            }
+          } catch (e) {
+            console.warn('Failed to parse images for post:', post._row_id, e);
+          }
+        }
+      });
+
+      // user_profiles の profile_photo_url を収集
+      userProfilesData.forEach(profile => {
+        if (profile.profile_photo_url && typeof profile.profile_photo_url === 'string') {
+          imageFilesSet.add(profile.profile_photo_url);
+        }
+      });
+
+      // Set を配列に変換してソート
+      const imageFiles = Array.from(imageFilesSet).sort();
+
       // バックアップデータを構造化
       const backupData = {
         exported_at: new Date().toISOString(),
@@ -198,6 +229,7 @@ const Admin = () => {
           forum_replies: forumRepliesData,
           messages: messagesData
         },
+        image_files: imageFiles,
         stats: {
           total_users: usersData.length,
           total_user_profiles: userProfilesData.length,
@@ -207,12 +239,16 @@ const Admin = () => {
           total_locations: locationsData.length,
           total_forum_topics: forumTopicsData.length,
           total_forum_replies: forumRepliesData.length,
-          total_messages: messagesData.length
+          total_messages: messagesData.length,
+          total_image_files: imageFiles.length
         }
       };
 
-      // JSONファイルとしてダウンロード
-      const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+      // UTF-8 with BOM でJSONファイルとしてダウンロード
+      const jsonString = JSON.stringify(backupData, null, 2);
+      // BOM (Byte Order Mark) を追加して UTF-8 を明示
+      const bom = '\uFEFF';
+      const blob = new Blob([bom + jsonString], { type: 'application/json;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       const today = new Date();
@@ -227,7 +263,7 @@ const Admin = () => {
 
       toast({
         title: "バックアップ完了",
-        description: "バックアップをダウンロードしました",
+        description: `バックアップをダウンロードしました（${imageFiles.length}件の画像ファイルを含む）`,
       });
     } catch (error) {
       console.error('Backup failed:', error);
