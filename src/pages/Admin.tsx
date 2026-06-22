@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Shield, Users, FileText, AlertTriangle, Ban, Check, X, Eye, Search, Filter, Trash, Plus, Edit, CheckCircle, Clock, Download } from 'lucide-react';
+import { Shield, Users, FileText, AlertTriangle, Ban, Check, X, Eye, Search, Filter, Trash, Plus, Edit, CheckCircle, Clock, Download, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,6 +18,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { PostModal } from '@/components/PostModal';
 import Footer from '@/components/Footer';
 import { statusLabels } from '@/constants/postLabels';
+import JSZip from 'jszip';
 
 const categoryIcons = {
   'cat-sell': '🛍️',
@@ -269,6 +270,142 @@ const Admin = () => {
       console.error('Backup failed:', error);
       toast({
         title: "バックアップエラー",
+        description: `エラーが発生しました: ${error.message}`,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDownloadAllImages = async () => {
+    try {
+      toast({
+        title: "画像ダウンロード中...",
+        description: "画像ファイルを収集中です",
+      });
+
+      // 全データを取得して画像ファイルを収集
+      const [userProfilesData, postsData] = await Promise.all([
+        db.query('user_profiles', {}),
+        db.query('posts', {})
+      ]);
+
+      // 画像ファイルを収集（重複を除く）
+      const imageFilesSet = new Set<string>();
+
+      // posts の images を収集
+      postsData.forEach(post => {
+        if (post.images) {
+          try {
+            const images = typeof post.images === 'string' ? JSON.parse(post.images) : post.images;
+            if (Array.isArray(images)) {
+              images.forEach(img => {
+                if (img && typeof img === 'string') {
+                  imageFilesSet.add(img);
+                }
+              });
+            }
+          } catch (e) {
+            console.warn('Failed to parse images for post:', post._row_id, e);
+          }
+        }
+      });
+
+      // user_profiles の profile_photo_url を収集
+      userProfilesData.forEach(profile => {
+        if (profile.profile_photo_url && typeof profile.profile_photo_url === 'string') {
+          imageFilesSet.add(profile.profile_photo_url);
+        }
+      });
+
+      // Set を配列に変換
+      const imageFiles = Array.from(imageFilesSet);
+      
+      // /content/...の画像のみフィルタリング（外部URLを除外）
+      const internalImages = imageFiles.filter(url => url.startsWith('/content/'));
+      
+      if (internalImages.length === 0) {
+        toast({
+          title: "画像なし",
+          description: "ダウンロード対象の画像ファイルがありません",
+        });
+        return;
+      }
+
+      toast({
+        title: "画像ダウンロード中...",
+        description: `${internalImages.length}件中0件をダウンロード中...`,
+      });
+
+      // ZIPファイルを作成
+      const zip = new JSZip();
+      let downloadedCount = 0;
+      let failedCount = 0;
+
+      // 各画像をダウンロードしてZIPに追加
+      for (let i = 0; i < internalImages.length; i++) {
+        const imageUrl = internalImages[i];
+        
+        try {
+          // 画像をフェッチ
+          const response = await fetch(imageUrl);
+          
+          if (!response.ok) {
+            console.warn(`Failed to fetch image: ${imageUrl} (status: ${response.status})`);
+            failedCount++;
+            continue;
+          }
+
+          const blob = await response.blob();
+          
+          // ファイル名を抽出（パスの最後の部分）
+          const fileName = imageUrl.split('/').pop() || `image_${i + 1}`;
+          
+          // ZIPに追加
+          zip.file(fileName, blob);
+          downloadedCount++;
+          
+          // 進捗を更新（10件ごと）
+          if (downloadedCount % 10 === 0 || i === internalImages.length - 1) {
+            toast({
+              title: "画像ダウンロード中...",
+              description: `${internalImages.length}件中${downloadedCount}件をダウンロード中...`,
+            });
+          }
+        } catch (error) {
+          console.warn(`Failed to download image: ${imageUrl}`, error);
+          failedCount++;
+        }
+      }
+
+      // ZIPファイルを生成
+      toast({
+        title: "ZIPファイル作成中...",
+        description: "アーカイブを作成中です...",
+      });
+
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      
+      // ダウンロード
+      const url = URL.createObjectURL(zipBlob);
+      const link = document.createElement('a');
+      const today = new Date();
+      const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      
+      link.href = url;
+      link.download = `sverige-jp-images-${dateStr}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "ダウンロード完了",
+        description: `${internalImages.length}件中${downloadedCount}件を保存、${failedCount}件は取得できませんでした`,
+      });
+    } catch (error) {
+      console.error('Image download failed:', error);
+      toast({
+        title: "ダウンロードエラー",
         description: `エラーが発生しました: ${error.message}`,
         variant: "destructive"
       });
@@ -696,32 +833,64 @@ const Admin = () => {
         </div>
 
         {/* Backup Section */}
-        <Card className="bg-blue-50 border-blue-200">
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <div>
-                <CardTitle className="text-blue-900">データベースバックアップ</CardTitle>
-                <p className="text-sm text-blue-700 mt-1">
-                  ※定期的(月1回など)にダウンロードして保管することをおすすめします
-                </p>
+        <div className="space-y-4 mb-8">
+          {/* Database Backup */}
+          <Card className="bg-blue-50 border-blue-200">
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle className="text-blue-900">データベースバックアップ</CardTitle>
+                  <p className="text-sm text-blue-700 mt-1">
+                    ※定期的(月1回など)にダウンロードして保管することをおすすめします
+                  </p>
+                </div>
+                <Button 
+                  onClick={handleBackupAllData}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  全データをバックアップ(ダウンロード)
+                </Button>
               </div>
-              <Button 
-                onClick={handleBackupAllData}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                全データをバックアップ(ダウンロード)
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-sm text-blue-700 space-y-1">
-              <p>• バックアップには全テーブルのデータが含まれます（削除済みデータも含む）</p>
-              <p>• ファイル形式: JSON (sverige-jp-backup-YYYY-MM-DD.json)</p>
-              <p>• 含まれるテーブル: users, user_profiles, posts, categories, subcategories, locations, forum_topics, forum_replies, messages</p>
-            </div>
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent>
+              <div className="text-sm text-blue-700 space-y-1">
+                <p>• バックアップには全テーブルのデータが含まれます（削除済みデータも含む）</p>
+                <p>• ファイル形式: JSON (sverige-jp-backup-YYYY-MM-DD.json)</p>
+                <p>• 含まれるテーブル: users, user_profiles, posts, categories, subcategories, locations, forum_topics, forum_replies, messages</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Image Download */}
+          <Card className="bg-purple-50 border-purple-200">
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle className="text-purple-900">画像ファイル一括ダウンロード</CardTitle>
+                  <p className="text-sm text-purple-700 mt-1">
+                    ※アップロードされた画像ファイルをZIPファイルとしてダウンロードします
+                  </p>
+                </div>
+                <Button 
+                  onClick={handleDownloadAllImages}
+                  className="bg-purple-600 hover:bg-purple-700"
+                >
+                  <Package className="h-4 w-4 mr-2" />
+                  画像ファイルを一括ダウンロード(ZIP)
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-sm text-purple-700 space-y-1">
+                <p>• 全投稿の画像とユーザープロフィール画像をまとめてダウンロードします</p>
+                <p>• ファイル形式: ZIP (sverige-jp-images-YYYY-MM-DD.zip)</p>
+                <p>• 対象: /content/... の画像のみ（外部URLはスキップされます）</p>
+                <p>• 取得できなかった画像は最後に報告されます</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Main Content */}
         <Tabs defaultValue="posts" className="space-y-6">
