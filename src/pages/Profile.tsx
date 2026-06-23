@@ -36,6 +36,14 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState('');
+  const [changingPassword, setChangingPassword] = useState(false);
   const [editForm, setEditForm] = useState({
     display_name: '',
     bio: '',
@@ -454,6 +462,99 @@ const Profile = () => {
     }
   };
 
+  const handleChangePassword = async () => {
+    // Clear previous messages
+    setPasswordError('');
+    setPasswordSuccess('');
+    
+    const { currentPassword, newPassword, confirmPassword } = passwordForm;
+    
+    // Validation: check if passwords match
+    if (newPassword !== confirmPassword) {
+      const errorMsg = '新しいパスワードと確認パスワードが一致しません';
+      setPasswordError(errorMsg);
+      toast({
+        title: "エラー",
+        description: errorMsg,
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Validation: password strength (8+ chars, letters and numbers)
+    if (newPassword.length < 8) {
+      const errorMsg = '新しいパスワードは8文字以上である必要があります';
+      setPasswordError(errorMsg);
+      toast({
+        title: "エラー",
+        description: errorMsg,
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    const hasLetter = /[a-zA-Z]/.test(newPassword);
+    const hasNumber = /[0-9]/.test(newPassword);
+    if (!hasLetter || !hasNumber) {
+      const errorMsg = '新しいパスワードは文字と数字の両方を含む必要があります';
+      setPasswordError(errorMsg);
+      toast({
+        title: "エラー",
+        description: errorMsg,
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setChangingPassword(true);
+    
+    try {
+      // Verify current password by attempting to sign in
+      try {
+        await auth.signIn(user.email, currentPassword);
+      } catch (signInError) {
+        console.error('Current password verification failed:', signInError);
+        const errorMsg = '現在のパスワードが正しくありません';
+        setPasswordError(errorMsg);
+        toast({
+          title: "エラー",
+          description: errorMsg,
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Update password
+      await auth.updateUser({ password: newPassword });
+      
+      // Success
+      const successMsg = 'パスワードを変更しました';
+      setPasswordSuccess(successMsg);
+      toast({
+        title: "成功",
+        description: successMsg,
+      });
+      
+      // Clear form
+      setPasswordForm({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
+    } catch (error) {
+      console.error('Password change error:', error);
+      const errorMsg = 'パスワードの変更に失敗しました。しばらく待ってから再試行してください。';
+      setPasswordError(errorMsg);
+      toast({
+        title: "エラー",
+        description: errorMsg,
+        variant: "destructive"
+      });
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
   const formatDate = (timestamp) => {
     const date = new Date(timestamp * 1000);
     return date.toLocaleDateString('ja-JP') + ' ' + date.toLocaleTimeString('ja-JP', { 
@@ -816,6 +917,83 @@ const Profile = () => {
                 </CardContent>
               </Card>
             )}
+
+            {/* Password Change Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Settings className="w-5 h-5" />
+                  <span>パスワード変更</span>
+                </CardTitle>
+                <CardDescription>
+                  セキュリティのため、定期的にパスワードを変更することをお勧めします
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={(e) => { e.preventDefault(); handleChangePassword(); }} className="space-y-4">
+                  {/* Error/Success Alert */}
+                  {passwordError && (
+                    <Alert className="bg-red-50 border-red-200 text-red-800">
+                      <AlertDescription>{passwordError}</AlertDescription>
+                    </Alert>
+                  )}
+                  {passwordSuccess && (
+                    <Alert className="bg-green-50 border-green-200 text-green-800">
+                      <AlertDescription>{passwordSuccess}</AlertDescription>
+                    </Alert>
+                  )}
+                  
+                  <div>
+                    <Label htmlFor="current-password">現在のパスワード</Label>
+                    <Input
+                      id="current-password"
+                      type="password"
+                      value={passwordForm.currentPassword}
+                      onChange={(e) => setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
+                      placeholder="現在のパスワードを入力"
+                      disabled={changingPassword}
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="new-password">新しいパスワード</Label>
+                    <Input
+                      id="new-password"
+                      type="password"
+                      value={passwordForm.newPassword}
+                      onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
+                      placeholder="新しいパスワードを入力"
+                      disabled={changingPassword}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      8文字以上で、文字と数字の両方を含める必要があります
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="confirm-password">新しいパスワード（確認）</Label>
+                    <Input
+                      id="confirm-password"
+                      type="password"
+                      value={passwordForm.confirmPassword}
+                      onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                      placeholder="新しいパスワードを再入力"
+                      disabled={changingPassword}
+                    />
+                  </div>
+                  
+                  <Button 
+                    type="submit" 
+                    disabled={changingPassword || !passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword}
+                  >
+                    {changingPassword ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    ) : null}
+                    変更する
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="posts" className="space-y-6">
