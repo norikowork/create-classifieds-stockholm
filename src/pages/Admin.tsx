@@ -289,8 +289,17 @@ const Admin = () => {
         db.query('posts', {})
       ]);
 
-      // 画像ファイルを収集（重複を除く）
-      const imageFilesSet = new Set<string>();
+      // user_profiles を Map に変換（user_uuid -> profile）
+      const userProfileMap = new Map<string, any>();
+      userProfilesData.forEach(profile => {
+        if (profile.user_uuid) {
+          userProfileMap.set(profile.user_uuid, profile);
+        }
+      });
+
+      // 画像ファイル情報を収集（メタデータ付き）
+      const postImages: Array<{url: string, post: any}> = [];
+      const profileImages: Array<{url: string, profile: any}> = [];
 
       // posts の images を収集
       postsData.forEach(post => {
@@ -299,8 +308,8 @@ const Admin = () => {
             const images = typeof post.images === 'string' ? JSON.parse(post.images) : post.images;
             if (Array.isArray(images)) {
               images.forEach(img => {
-                if (img && typeof img === 'string') {
-                  imageFilesSet.add(img);
+                if (img && typeof img === 'string' && img.startsWith('/content/')) {
+                  postImages.push({ url: img, post });
                 }
               });
             }
@@ -312,18 +321,14 @@ const Admin = () => {
 
       // user_profiles の profile_photo_url を収集
       userProfilesData.forEach(profile => {
-        if (profile.profile_photo_url && typeof profile.profile_photo_url === 'string') {
-          imageFilesSet.add(profile.profile_photo_url);
+        if (profile.profile_photo_url && typeof profile.profile_photo_url === 'string' && profile.profile_photo_url.startsWith('/content/')) {
+          profileImages.push({ url: profile.profile_photo_url, profile });
         }
       });
 
-      // Set を配列に変換
-      const imageFiles = Array.from(imageFilesSet);
+      const totalImages = postImages.length + profileImages.length;
       
-      // /content/...の画像のみフィルタリング（外部URLを除外）
-      const internalImages = imageFiles.filter(url => url.startsWith('/content/'));
-      
-      if (internalImages.length === 0) {
+      if (totalImages === 0) {
         toast({
           title: "画像なし",
           description: "ダウンロード対象の画像ファイルがありません",
@@ -333,49 +338,187 @@ const Admin = () => {
 
       toast({
         title: "画像ダウンロード中...",
-        description: `${internalImages.length}件中0件をダウンロード中...`,
+        description: `${totalImages}件中0件をダウンロード中...`,
       });
+
+      // ファイル名をサニタイズする関数
+      const sanitizeFileName = (name: string): string => {
+        // ファイル名に使えない文字を _ に置換
+        let sanitized = name.replace(/[\/\\:*?"<>|]/g, '_');
+        // 空白も _ に置換
+        sanitized = sanitized.replace(/\s+/g, '_');
+        // 長すぎる場合は短縮（最大80文字）
+        if (sanitized.length > 80) {
+          sanitized = sanitized.substring(0, 80);
+        }
+        return sanitized;
+      };
+
+      // 日付をフォーマットする関数
+      const formatDate = (timestamp: string): string => {
+        if (!timestamp) return 'unknown-date';
+        try {
+          const date = new Date(timestamp);
+          return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        } catch {
+          return 'unknown-date';
+        }
+      };
+
+      // 読みやすい日時をフォーマットする関数
+      const formatDateTime = (timestamp: string): string => {
+        if (!timestamp) return '不明';
+        try {
+          const date = new Date(timestamp);
+          return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+        } catch {
+          return '不明';
+        }
+      };
 
       // ZIPファイルを作成
       const zip = new JSZip();
+      const metadata: any = {
+        exported_at: new Date().toISOString(),
+        total_images: totalImages,
+        images: []
+      };
+
       let downloadedCount = 0;
       let failedCount = 0;
+      const usedFileNames = new Set<string>();
 
-      // 各画像をダウンロードしてZIPに追加
-      for (let i = 0; i < internalImages.length; i++) {
-        const imageUrl = internalImages[i];
+      // 投稿画像をダウンロードしてZIPに追加
+      for (let i = 0; i < postImages.length; i++) {
+        const { url, post } = postImages[i];
         
         try {
           // 画像をフェッチ
-          const response = await fetch(imageUrl);
+          const response = await fetch(url);
           
           if (!response.ok) {
-            console.warn(`Failed to fetch image: ${imageUrl} (status: ${response.status})`);
+            console.warn(`Failed to fetch image: ${url} (status: ${response.status})`);
             failedCount++;
             continue;
           }
 
           const blob = await response.blob();
           
-          // ファイル名を抽出（パスの最後の部分）
-          const fileName = imageUrl.split('/').pop() || `image_${i + 1}`;
+          // 投稿者情報を取得
+          const userProfile = userProfileMap.get(post._created_by);
+          const displayName = userProfile?.display_name || post._created_by;
           
-          // ZIPに追加
-          zip.file(fileName, blob);
+          // ファイル名を生成
+          const postDate = formatDate(post._created_at);
+          const originalFileName = url.split('/').pop() || 'image';
+          const sanitizedName = sanitizeFileName(originalFileName);
+          let fileName = `${postDate}_post${post._row_id}_${displayName}_${sanitizedName}`;
+          
+          // 同名衝突を回避
+          let finalFileName = fileName;
+          let counter = 1;
+          while (usedFileNames.has(finalFileName)) {
+            finalFileName = `${fileName}_${counter}`;
+            counter++;
+          }
+          usedFileNames.add(finalFileName);
+
+          // ZIPに追加（posts/ フォルダ）
+          zip.file(`posts/${finalFileName}`, blob);
+          
+          // メタデータを追加
+          metadata.images.push({
+            file: `posts/${finalFileName}`,
+            original_path: url,
+            source: 'post',
+            post_id: post._row_id,
+            post_title: post.title,
+            post_created_by: displayName,
+            post_created_at: formatDateTime(post._created_at),
+            post_uuid: post._created_by
+          });
+          
           downloadedCount++;
           
           // 進捗を更新（10件ごと）
-          if (downloadedCount % 10 === 0 || i === internalImages.length - 1) {
+          if (downloadedCount % 10 === 0) {
             toast({
               title: "画像ダウンロード中...",
-              description: `${internalImages.length}件中${downloadedCount}件をダウンロード中...`,
+              description: `${totalImages}件中${downloadedCount}件をダウンロード中...`,
             });
           }
         } catch (error) {
-          console.warn(`Failed to download image: ${imageUrl}`, error);
+          console.warn(`Failed to download image: ${url}`, error);
           failedCount++;
         }
       }
+
+      // プロフィール画像をダウンロードしてZIPに追加
+      for (let i = 0; i < profileImages.length; i++) {
+        const { url, profile } = profileImages[i];
+        
+        try {
+          // 画像をフェッチ
+          const response = await fetch(url);
+          
+          if (!response.ok) {
+            console.warn(`Failed to fetch image: ${url} (status: ${response.status})`);
+            failedCount++;
+            continue;
+          }
+
+          const blob = await response.blob();
+          
+          // ファイル名を生成
+          const profileDate = formatDate(profile._updated_at || profile._created_at);
+          const displayName = profile.display_name || profile.user_uuid;
+          const originalFileName = url.split('/').pop() || 'image';
+          const sanitizedName = sanitizeFileName(originalFileName);
+          let fileName = `${profileDate}_${displayName}_${sanitizedName}`;
+          
+          // 同名衝突を回避
+          let finalFileName = fileName;
+          let counter = 1;
+          while (usedFileNames.has(finalFileName)) {
+            finalFileName = `${fileName}_${counter}`;
+            counter++;
+          }
+          usedFileNames.add(finalFileName);
+
+          // ZIPに追加（profiles/ フォルダ）
+          zip.file(`profiles/${finalFileName}`, blob);
+          
+          // メタデータを追加
+          metadata.images.push({
+            file: `profiles/${finalFileName}`,
+            original_path: url,
+            source: 'user_profile',
+            user_uuid: profile.user_uuid,
+            display_name: profile.display_name || profile.user_uuid,
+            email: profile.email || '',
+            profile_updated_at: formatDateTime(profile._updated_at || profile._created_at)
+          });
+          
+          downloadedCount++;
+          
+          // 進捗を更新（10件ごと）
+          if (downloadedCount % 10 === 0) {
+            toast({
+              title: "画像ダウンロード中...",
+              description: `${totalImages}件中${downloadedCount}件をダウンロード中...`,
+            });
+          }
+        } catch (error) {
+          console.warn(`Failed to download image: ${url}`, error);
+          failedCount++;
+        }
+      }
+
+      // メタデータJSONをZIPに追加（UTF-8 with BOM）
+      const metadataJson = JSON.stringify(metadata, null, 2);
+      const bom = '\uFEFF';
+      const metadataBlob = new Blob([bom + metadataJson], { type: 'application/json;charset=utf-8' });
+      zip.file('metadata.json', metadataBlob);
 
       // ZIPファイルを生成
       toast({
@@ -400,7 +543,7 @@ const Admin = () => {
 
       toast({
         title: "ダウンロード完了",
-        description: `${internalImages.length}件中${downloadedCount}件を保存、${failedCount}件は取得できませんでした`,
+        description: `${totalImages}件中${downloadedCount}件を保存、${failedCount}件は取得できませんでした（メタデータを含む）`,
       });
     } catch (error) {
       console.error('Image download failed:', error);
