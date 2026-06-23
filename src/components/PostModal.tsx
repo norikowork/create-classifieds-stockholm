@@ -14,7 +14,7 @@ import content from '@/lib/shared/kliv-content';
 import auth from '@/lib/shared/kliv-auth';
 import { checkIsAdmin } from '@/lib/isAdmin';
 import { useToast } from '@/hooks/use-toast';
-import { ShoppingBag, Search, Briefcase, User, Trash2, Package, MapPin, Mail, Phone, Image as ImageIcon, X, DollarSign } from 'lucide-react';
+import { ShoppingBag, Search, Briefcase, User, Trash2, Package, MapPin, Mail, Phone, Image as ImageIcon, X, Wallet } from 'lucide-react';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
 
@@ -1050,7 +1050,7 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
-                  <DollarSign className="w-5 h-5" />
+                  <Wallet className="w-5 h-5" />
                   価格
                 </CardTitle>
               </CardHeader>
