@@ -111,24 +111,46 @@ const Admin = () => {
       setAllUsers(userProfiles);
       
       // Add creator display name to posts
+      console.log('🔍 投稿者名解決開始 - 投稿数:', posts.length, 'ユーザープロファイル数:', userProfiles.length);
+      
+      // 投稿者名マップを作成（パフォーマンス向上）
+      const profileMap = new Map();
+      userProfiles.forEach(profile => {
+        profileMap.set(profile.user_uuid, profile);
+      });
+      
       const postsWithCreatorNames = posts.map(post => {
-        const creatorProfile = userProfiles.find(profile => profile.user_uuid === post._created_by);
-        const displayName = creatorProfile?.display_name || '不明';
+        const creatorProfile = profileMap.get(post._created_by);
+        const displayName = creatorProfile?.display_name || creatorProfile?.email || '不明';
+        const creatorId = post._created_by ? post._created_by.substring(0, 8) : '(IDなし)';
+        
+        console.log('📝 投稿者名解決:', {
+          postId: post._row_id,
+          postTitle: post.title,
+          createdBy: post._created_by,
+          createdByType: typeof post._created_by,
+          foundProfile: !!creatorProfile,
+          displayName,
+          creatorId
+        });
         
         return {
           ...post,
-          creatorDisplayName: displayName
+          creatorDisplayName: displayName,
+          creatorId: creatorId
         };
       });
       
       // Add creator display name to flagged posts
       const flaggedWithCreatorNames = flagged.map(post => {
-        const creatorProfile = userProfiles.find(profile => profile.user_uuid === post._created_by);
-        const displayName = creatorProfile?.display_name || '不明';
+        const creatorProfile = profileMap.get(post._created_by);
+        const displayName = creatorProfile?.display_name || creatorProfile?.email || '不明';
+        const creatorId = post._created_by ? post._created_by.substring(0, 8) : '(IDなし)';
         
         return {
           ...post,
-          creatorDisplayName: displayName
+          creatorDisplayName: displayName,
+          creatorId: creatorId
         };
       });
       
@@ -1321,7 +1343,7 @@ const Admin = () => {
                               投稿ID: {post._row_id}
                             </Badge>
                             <Badge variant="outline">
-                              投稿者: {post.creatorDisplayName || '不明'} (ID: {post._created_by?.substring(0, 8)}...)
+                              投稿者: {post.creatorDisplayName} (ID: {post.creatorId})
                             </Badge>
                           </div>
                           <p className="text-xs text-gray-500">
@@ -1564,7 +1586,7 @@ const Admin = () => {
                               報告済み
                             </Badge>
                             <Badge variant="outline">
-                              投稿者: {post.creatorDisplayName || '不明'} (ID: {post._created_by?.substring(0, 8)}...)
+                              投稿者: {post.creatorDisplayName} (ID: {post.creatorId})
                             </Badge>
                           </div>
                           <p className="text-xs text-gray-500">
