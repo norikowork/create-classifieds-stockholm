@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Shield, Users, FileText, AlertTriangle, Ban, Check, X, Eye, Search, Filter, Trash, Plus, Edit, CheckCircle, Clock, Download, Package, Mail } from 'lucide-react';
+import { Shield, Users, FileText, AlertTriangle, Ban, Check, X, Eye, Search, Filter, Trash, Plus, Edit, CheckCircle, Clock, Download, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -60,26 +60,8 @@ const Admin = () => {
     flaggedPosts: 0,
     blockedUsers: 0
   });
-  const [isVerifyingEmails, setIsVerifyingEmails] = useState(false);
-  const [testEmail, setTestEmail] = useState('noriko@rational.ventures');
-  const [isTestingEmail, setIsTestingEmail] = useState(false);
-  const [emailTestResults, setEmailTestResults] = useState<string>('');
   const { toast } = useToast();
 
-
-  // 日付をフォーマットする関数（ユーザー一覧表示用）
-  const formatDate = (timestamp: number | null | undefined): string => {
-    if (!timestamp) return '不明';
-    try {
-      const date = new Date(timestamp * 1000); // UNIX秒をミリ秒に変換
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      return `${year}/${month}/${day}`;
-    } catch {
-      return '不明';
-    }
-  };
   useEffect(() => {
     checkAdminAccess();
   }, []);
@@ -657,34 +639,14 @@ const Admin = () => {
 
   const handleBlockUser = async (userUuid) => {
     try {
-      // 対象ユーザーのuser_profiles行を確認
-      const targetUser = allUsers.find(u => u.user_uuid === userUuid);
-      if (!targetUser) {
-        throw new Error('ユーザーが見つかりません');
-      }
-      
-      // user_profiles行がない場合は作成
-      if (!targetUser.profile_exists) {
-        await db.insert('user_profiles', {
-          user_uuid: userUuid,
-          email: targetUser.email,
-          display_name: targetUser.display_name || targetUser.email,
-          role: targetUser.role || 'user',
+      // 常にuser_profiles.is_blockedを更新
+      await db.update('user_profiles',
+        { user_uuid: `eq.${userUuid}` },
+        { 
           is_blocked: 1,
-          plan: targetUser.plan || 'free',
-          _created_at: Math.floor(Date.now() / 1000),
           _updated_at: Math.floor(Date.now() / 1000)
-        });
-      } else {
-        // 既存のuser_profiles行を更新
-        await db.update('user_profiles',
-          { user_uuid: `eq.${userUuid}` },
-          { 
-            is_blocked: 1,
-            _updated_at: Math.floor(Date.now() / 1000)
-          }
-        );
-      }
+        }
+      );
       
       toast({
         title: "ユーザーブロック完了",
@@ -701,144 +663,32 @@ const Admin = () => {
       });
     }
   };
-  };
 
-  const handleVerifyAllEmails = async () => {
-
-  const handleVerifyAllEmails = async () => {
-    // 確認ダイアログ
-    const confirmed = window.confirm(
-      '既存ユーザー全員のメール確認フラグ（emailVerified）を true に設定します。\n\n' +
-      'この操作は元に戻せません。続行しますか？'
-    );
-    
-    if (!confirmed) {
-      return;
-    }
-    
-    setIsVerifyingEmails(true);
-    
+  const handleUnblockUser = async (userUuid) => {
     try {
-      // ユーザー一覧を取得
-      const result = await auth.listUsers();
-      const users = result.data || result || [];
-      
-      let updatedCount = 0;
-      let alreadyVerifiedCount = 0;
-      let errorCount = 0;
-      const errors = [];
-      
-      // 各ユーザーを更新
-      for (const user of users) {
-        try {
-          // 既に確認済みの場合はスキップ
-          if (user.emailVerified) {
-            alreadyVerifiedCount++;
-            continue;
-          }
-          
-          // emailVerified を true に設定
-          await auth.updateUserByUuid(user.userUuid, { 
-            emailVerified: true 
-          });
-          
-          updatedCount++;
-          
-          // API レート制限を考慮して待機
-          await new Promise(resolve => setTimeout(resolve, 100));
-          
-        } catch (error) {
-          errorCount++;
-          errors.push({ 
-            userUuid: user.userUuid, 
-            email: user.email, 
-            error: error.message 
-          });
-          console.error(`Failed to verify email for ${user.email}:`, error);
+      // 常にuser_profiles.is_blockedを更新
+      await db.update('user_profiles',
+        { user_uuid: `eq.${userUuid}` },
+        { 
+          is_blocked: 0,
+          _updated_at: Math.floor(Date.now() / 1000)
         }
-      }
+        );
       
-      // 結果を表示
       toast({
-        title: "メール確認完了",
-        description: `${updatedCount}人を確認済みにしました (既に確認済み:${alreadyVerifiedCount}人、エラー:${errorCount}件)`,
-        variant: errorCount > 0 ? "destructive" : "default"
+        title: "ユーザーブロック解除完了",
+        description: "ユーザーのブロックが解除されました",
       });
       
-      if (errors.length > 0) {
-        console.error('Email verification errors:', errors);
-      }
-      
+      loadAdminData();
     } catch (error) {
-      console.error('Failed to verify emails:', error);
+      console.error('Error unblocking user:', error);
       toast({
         title: "エラー",
-        description: `エラーが発生しました: ${error.message}`,
+        description: "ユーザーのブロック解除に失敗しました",
         variant: "destructive"
       });
-    } finally {
-      setIsVerifyingEmails(false);
     }
-  };
-
-  const handleTestAuthEmails = async () => {
-    if (!testEmail || !testEmail.includes('@')) {
-      toast({
-        title: "エラー",
-        description: "有効なメールアドレスを入力してください",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    setIsTestingEmail(true);
-    let results = '=== 認証メール送信テスト結果 ===\n';
-    results += `テスト対象: ${testEmail}\n`;
-    results += `実行時刻: ${new Date().toLocaleString('ja-JP')}\n\n`;
-    
-    // Test 1: auth.resendActivation
-    results += '--- テスト1: auth.resendActivation() ---\n';
-    try {
-      const result = await auth.resendActivation(testEmail);
-      results += `✅ 成功:\n`;
-      results += `- 戻り値: ${JSON.stringify(result, null, 2)}\n`;
-      results += `- データ型: ${typeof result}\n`;
-      results += `- データキー: ${Object.keys(result || {}).join(', ')}\n\n`;
-    } catch (error: any) {
-      results += `❌ エラー:\n`;
-      results += `- error.message: ${error.message}\n`;
-      results += `- エラー全文: ${JSON.stringify(error, null, 2)}\n`;
-      results += `- エラーコード: ${error.code || 'N/A'}\n`;
-      results += `- エラー名: ${error.name || 'N/A'}\n\n`;
-    }
-    
-    // Test 2: auth.requestPasswordReset
-    results += '--- テスト2: auth.requestPasswordReset() ---\n';
-    try {
-      const result = await auth.requestPasswordReset(testEmail);
-      results += `✅ 成功:\n`;
-      results += `- 戻り値: ${JSON.stringify(result, null, 2)}\n`;
-      results += `- データ型: ${typeof result}\n`;
-      results += `- データキー: ${Object.keys(result || {}).join(', ')}\n\n`;
-    } catch (error: any) {
-      results += `❌ エラー:\n`;
-      results += `- error.message: ${error.message}\n`;
-      results += `- エラー全文: ${JSON.stringify(error, null, 2)}\n`;
-      results += `- エラーコード: ${error.code || 'N/A'}\n`;
-      results += `- エラー名: ${error.name || 'N/A'}\n\n`;
-    }
-    
-    results += '--- テスト完了 ---\n';
-    results += `※ 結果をメールボックス(迷惑メールフォルダ含む)で確認してください\n`;
-    
-    setEmailTestResults(results);
-    
-    toast({
-      title: "テスト完了",
-      description: `${testEmail} に認証メールを送信しました。結果を確認してください。`,
-    });
-    
-    setIsTestingEmail(false);
   };
 
   const handleUpdatePost = async (postId, updates) => {
@@ -1010,43 +860,23 @@ const Admin = () => {
       display_name: userItem.display_name || '',
       email: userItem.email || '',
       role: userItem.role || 'user',
-      is_blocked: userItem.is_blocked === 1 || userItem.is_blocked === true
+      is_blocked: userItem.is_blocked === 1
     });
     setIsUserModalOpen(true);
   };
 
   const handleSaveUser = async () => {
     try {
-      const targetUser = allUsers.find(u => u.user_uuid === editingUser.user_uuid);
-      if (!targetUser) {
-        throw new Error('ユーザーが見つかりません');
-      }
-      
-      // user_profiles行がない場合は作成
-      if (!targetUser.profile_exists) {
-        await db.insert('user_profiles', {
-          user_uuid: editingUser.user_uuid,
-          email: userForm.email,
+      await db.update('user_profiles',
+        { _row_id: `eq.${editingUser._row_id}` },
+        {
           display_name: userForm.display_name,
+          email: userForm.email,
           role: userForm.role,
           is_blocked: userForm.is_blocked ? 1 : 0,
-          plan: targetUser.plan || 'free',
-          _created_at: Math.floor(Date.now() / 1000),
           _updated_at: Math.floor(Date.now() / 1000)
-        });
-      } else {
-        // 既存のuser_profiles行を更新
-        await db.update('user_profiles',
-          { _row_id: `eq.${editingUser._row_id}` },
-          {
-            display_name: userForm.display_name,
-            email: userForm.email,
-            role: userForm.role,
-            is_blocked: userForm.is_blocked ? 1 : 0,
-            _updated_at: Math.floor(Date.now() / 1000)
-          }
-        );
-      }
+        }
+      );
       
       toast({
         title: "ユーザー更新完了",
@@ -1200,94 +1030,6 @@ const Admin = () => {
                 <p>• ファイル形式: ZIP (sverige-jp-images-YYYY-MM-DD.zip)</p>
                 <p>• 対象: /content/... の画像のみ（外部URLはスキップされます）</p>
                 <p>• 取得できなかった画像は最後に報告されます</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Email Verification */}
-          <Card className="bg-green-50 border-green-200">
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <div>
-                  <CardTitle className="text-green-900">既存ユーザーを全員メール確認済みにする</CardTitle>
-                  <p className="text-sm text-green-700 mt-1">
-                    ※一度きりのバッチ処理：emailVerified フラグを true に一括設定します
-                  </p>
-                </div>
-                <Button 
-                  onClick={handleVerifyAllEmails}
-                  disabled={isVerifyingEmails}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  {isVerifyingEmails ? '実行中...' : '全員を確認済みにする'}
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-sm text-green-700 space-y-1">
-                <p>• 既存ユーザー全員の emailVerified フラグを true に設定します</p>
-                <p>• 既に確認済みのユーザーはスキップされます</p>
-                <p>• 各更新の間に 100ms 待機して API レート制限を考慮します</p>
-                <p>• 完了後、更新人数を toast で報告します（他のデータは変更しません）</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Auth Email Test */}
-          <Card className="bg-orange-50 border-orange-200">
-            <CardHeader>
-              <div>
-                <CardTitle className="text-orange-900">認証メール送信テスト</CardTitle>
-                <p className="text-sm text-orange-700 mt-1">
-                  ※ auth.resendActivation() と auth.requestPasswordReset() の結果を診断します
-                </p>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <Input
-                  type="email"
-                  placeholder="テスト送信先メールアドレス"
-                  value={testEmail}
-                  onChange={(e) => setTestEmail(e.target.value)}
-                  className="max-w-md"
-                />
-                <Button 
-                  onClick={handleTestAuthEmails}
-                  disabled={isTestingEmail}
-                  className="bg-orange-600 hover:bg-orange-700"
-                >
-                  <Mail className="h-4 w-4 mr-2" />
-                  {isTestingEmail ? 'テスト中...' : '認証メールテスト送信'}
-                </Button>
-              </div>
-              
-              {emailTestResults && (
-                <div className="mt-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-medium text-orange-900">テスト結果:</p>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => setEmailTestResults('')}
-                    >
-                      クリア
-                    </Button>
-                  </div>
-                  <textarea
-                    readOnly
-                    value={emailTestResults}
-                    className="w-full h-96 p-3 text-xs font-mono bg-white border border-orange-200 rounded-lg"
-                  />
-                </div>
-              )}
-              
-              <div className="text-sm text-orange-700 space-y-1">
-                <p>• 入力されたメールアドレスに認証メールを送信します</p>
-                <p>• auth.resendActivation() と auth.requestPasswordReset() を順番に実行</p>
-                <p>• 成功時の戻り値、失敗時のエラー全文を表示します</p>
-                <p>• 結果を確認したら、メールボックス(迷惑メールフォルダ含む)も確認してください</p>
               </div>
             </CardContent>
           </Card>
