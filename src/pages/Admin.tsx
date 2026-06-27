@@ -66,6 +66,20 @@ const Admin = () => {
   const [emailTestResults, setEmailTestResults] = useState<string>('');
   const { toast } = useToast();
 
+
+  // 日付をフォーマットする関数（ユーザー一覧表示用）
+  const formatDate = (timestamp: number | null | undefined): string => {
+    if (!timestamp) return '不明';
+    try {
+      const date = new Date(timestamp * 1000); // UNIX秒をミリ秒に変換
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}/${month}/${day}`;
+    } catch {
+      return '不明';
+    }
+  };
   useEffect(() => {
     checkAdminAccess();
   }, []);
