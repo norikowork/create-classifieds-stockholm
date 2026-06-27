@@ -60,6 +60,9 @@ const Admin = () => {
     flaggedPosts: 0,
     blockedUsers: 0
   });
+  const [isVerifyingEmails, setIsVerifyingEmails] = useState(false);
+  const [spamReports, setSpamReports] = useState([]);
+  const [spamReportsByPost, setSpamReportsByPost] = useState({});
   const { toast } = useToast();
 
   useEffect(() => {
@@ -96,11 +99,12 @@ const Admin = () => {
 
   const loadAdminData = async () => {
     try {
-      const [userProfiles, posts, flagged, categoriesData] = await Promise.all([
+      const [userProfiles, posts, flagged, categoriesData, spamReportsData] = await Promise.all([
         db.query('user_profiles', { _deleted: 'eq.0', order: '_created_at.desc' }),
         db.query('posts', { _deleted: 'eq.0', order: '_created_at.desc' }),
         db.query('posts', { status: 'eq.flagged', order: '_created_at.desc' }),
-        db.query('categories', { _deleted: 'eq.0' })
+        db.query('categories', { _deleted: 'eq.0' }),
+        db.query('spam_reports', { order: '_created_at.desc' })
       ]);
       
       // ユーザーリストはuser_profilesのみを使用
@@ -131,6 +135,17 @@ const Admin = () => {
       setAllPosts(postsWithCreatorNames);
       setFlaggedPosts(flaggedWithCreatorNames);
       setCategories(categoriesData);
+      setSpamReports(spamReportsData || []);
+      
+      // Group spam reports by post_id
+      const groupedReports = {};
+      (spamReportsData || []).forEach(report => {
+        if (!groupedReports[report.post_id]) {
+          groupedReports[report.post_id] = [];
+        }
+        groupedReports[report.post_id].push(report);
+      });
+      setSpamReportsByPost(groupedReports);
       
       // Calculate stats
       const blockedCount = userProfiles.filter(u => u.is_blocked === 1).length;
@@ -691,6 +706,175 @@ const Admin = () => {
     }
   };
 
+  // スパム報告用ハンドラー
+  const handleHidePost = async (postId, adminName) => {
+    try {
+      // 投稿を非表示に設定
+      await db.update('posts',
+        { _row_id: `eq.${postId}` },
+        { 
+          is_hidden: 1,
+          _updated_at: Math.floor(Date.now() / 1000)
+        }
+      );
+      
+      // 関連するスパム報告をhiddenに更新
+      await db.update('spam_reports',
+        { post_id: `eq.${postId}` },
+        { 
+          status: 'hidden',
+          resolved_by: adminName,
+          _updated_at: Math.floor(Date.now() / 1000)
+        }
+      );
+      
+      toast({
+        title: "非表示完了",
+        description: "投稿を非表示にしました",
+      });
+      
+      loadAdminData();
+    } catch (error) {
+      console.error('Error hiding post:', error);
+      toast({
+        title: "エラー",
+        description: "投稿の非表示に失敗しました",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleShowPost = async (postId) => {
+    try {
+      // 投稿を再表示
+      await db.update('posts',
+        { _row_id: `eq.${postId}` },
+        { 
+          is_hidden: 0,
+          _updated_at: Math.floor(Date.now() / 1000)
+        }
+      );
+      
+      toast({
+        title: "再表示完了",
+        description: "投稿を再表示しました",
+      });
+      
+      loadAdminData();
+    } catch (error) {
+      console.error('Error showing post:', error);
+      toast({
+        title: "エラー",
+        description: "投稿の再表示に失敗しました",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleMarkAsOk = async (postId, adminName) => {
+    try {
+      // 関連するスパム報告をokに更新
+      await db.update('spam_reports',
+        { post_id: `eq.${postId}` },
+        { 
+          status: 'ok',
+          resolved_by: adminName,
+          _updated_at: Math.floor(Date.now() / 1000)
+        }
+      );
+      
+      toast({
+        title: "対応完了",
+        description: "問題なしとしてマークしました",
+      });
+      
+      loadAdminData();
+    } catch (error) {
+      console.error('Error marking as ok:', error);
+      toast({
+        title: "エラー",
+        description: "操作に失敗しました",
+        variant: "destructive"
+      });
+    }
+  };
+  const handleVerifyAllEmails = async () => {
+    // 確認ダイアログ
+    const confirmed = window.confirm(
+      '既存ユーザー全員のメール確認フラグ（emailVerified）を true に設定します。\n\n' +
+      'この操作は元に戻せません。続行しますか？'
+    );
+    
+    if (!confirmed) {
+      return;
+    }
+    
+    setIsVerifyingEmails(true);
+    
+    try {
+      // ユーザー一覧を取得
+      const result = await auth.listUsers();
+      const users = result.data || result || [];
+      
+      let updatedCount = 0;
+      let alreadyVerifiedCount = 0;
+      let errorCount = 0;
+      const errors = [];
+      
+      // 各ユーザーを更新
+      for (const user of users) {
+        try {
+          // 既に確認済みの場合はスキップ
+          if (user.emailVerified) {
+            alreadyVerifiedCount++;
+            continue;
+          }
+          
+          // emailVerified を true に設定
+          await auth.updateUserByUuid(user.userUuid, { 
+            emailVerified: true 
+          });
+          
+          updatedCount++;
+          
+          // API レート制限を考慮して待機
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+        } catch (error) {
+          errorCount++;
+          errors.push({ 
+            userUuid: user.userUuid, 
+            email: user.email, 
+            error: error.message 
+          });
+          console.error(`Failed to verify email for ${user.email}:`, error);
+        }
+      }
+      
+      // 結果を表示
+      toast({
+        title: "メール確認完了",
+        description: `${updatedCount}人を確認済みにしました (既に確認済み:${alreadyVerifiedCount}人、エラー:${errorCount}件)`,
+        variant: errorCount > 0 ? "destructive" : "default"
+      });
+      
+      if (errors.length > 0) {
+        console.error('Email verification errors:', errors);
+      }
+      
+    } catch (error) {
+      console.error('Failed to verify emails:', error);
+      toast({
+        title: "エラー",
+        description: `エラーが発生しました: ${error.message}`,
+        variant: "destructive"
+      });
+    } finally {
+      setIsVerifyingEmails(false);
+    }
+  };
+
+
   const handleUpdatePost = async (postId, updates) => {
     try {
       await db.update('posts',
@@ -1033,6 +1217,36 @@ const Admin = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Email Verification */}
+          <Card className="bg-green-50 border-green-200">
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle className="text-green-900">既存ユーザーを全員メール確認済みにする</CardTitle>
+                  <p className="text-sm text-green-700 mt-1">
+                    ※一度きりのバッチ処理：emailVerified フラグを true に一括設定します
+                  </p>
+                </div>
+                <Button 
+                  onClick={handleVerifyAllEmails}
+                  disabled={isVerifyingEmails}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  {isVerifyingEmails ? '実行中...' : '全員を確認済みにする'}
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-sm text-green-700 space-y-1">
+                <p>• 既存ユーザー全員の emailVerified フラグを true に設定します</p>
+                <p>• 既に確認済みのユーザーはスキップされます</p>
+                <p>• 各更新の間に 100ms 待機して API レート制限を考慮します</p>
+                <p>• 完了後、更新人数を toast で報告します（他のデータは変更しません）</p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Main Content */}
@@ -1041,6 +1255,14 @@ const Admin = () => {
             <TabsTrigger value="posts">投稿管理</TabsTrigger>
             <TabsTrigger value="users">ユーザー管理</TabsTrigger>
             <TabsTrigger value="categories">カテゴリ管理</TabsTrigger>
+            <TabsTrigger value="spam_reports">
+              スパム報告
+              {Object.values(spamReportsByPost).filter(reports => reports.some(r => r.status === 'pending')).length > 0 && (
+                <Badge variant="destructive" className="ml-2">
+                  {Object.values(spamReportsByPost).filter(reports => reports.some(r => r.status === 'pending')).length}
+                </Badge>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="flagged">報告済み</TabsTrigger>
           </TabsList>
 
@@ -1358,6 +1580,104 @@ const Admin = () => {
                     </p>
                   )}
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="spam_reports">
+            <Card>
+              <CardHeader>
+                <CardTitle>スパム報告一覧</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {Object.keys(spamReportsByPost).length === 0 ? (
+                  <p className="text-gray-500 text-center py-8">スパム報告はありません</p>
+                ) : (
+                  <div className="space-y-6">
+                    {Object.entries(spamReportsByPost).map(([postId, reports]) => {
+                      const postData = allPosts.find(p => p._row_id === postId);
+                      const pendingReports = reports.filter(r => r.status === 'pending');
+                      const isHidden = postData?.is_hidden === 1;
+
+                      return (
+                        <div key={postId} className="border rounded-lg p-4">
+                          <div className="flex justify-between items-start mb-4">
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-lg mb-2">
+                                <Link to={`/post/${postId}`} className="hover:text-blue-600">
+                                  {postData?.title || reports[0]?.post_title || '不明'}
+                                </Link>
+                              </h3>
+                              <div className="flex items-center gap-4 text-sm text-gray-600">
+                                <span>報告件数: {reports.length}件</span>
+                                <span>未対応: {pendingReports.length}件</span>
+                                {isHidden && (
+                                  <Badge variant="destructive">非表示中</Badge>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              {!isHidden ? (
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => handleHidePost(postId, user?.displayName || '管理者')}
+                                >
+                                  投稿を非表示にする
+                                </Button>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleShowPost(postId)}
+                                >
+                                  再表示する
+                                </Button>
+                              )}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleMarkAsOk(postId, user?.displayName || '管理者')}
+                              >
+                                問題なし
+                              </Button>
+                            </div>
+                          </div>
+
+                          {/* 報告者リスト */}
+                          <div className="space-y-3">
+                            {reports.map((report, index) => {
+                                  const reportDate = report._created_at ? new Date(report._created_at * 1000).toLocaleDateString('ja-JP') : '不明';
+                                  return (
+                                    <div key={report._row_id || index} className="border-l-2 pl-3 text-sm">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <span className="font-medium">{report.reporter_name || '不明'}</span>
+                                        <span className="text-gray-500">{reportDate}</span>
+                                        {report.status === 'pending' && (
+                                          <Badge variant="outline" className="text-xs">未対応</Badge>
+                                        )}
+                                        {report.status === 'hidden' && (
+                                          <Badge variant="destructive" className="text-xs">非表示済み</Badge>
+                                        )}
+                                        {report.status === 'ok' && (
+                                          <Badge variant="default" className="text-xs bg-green-100 text-green-800">問題なし</Badge>
+                                        )}
+                                      </div>
+                                      {report.reason && (
+                                        <p className="text-gray-600 text-xs">理由: {report.reason}</p>
+                                      )}
+                                      {report.resolved_by && (
+                                        <p className="text-xs text-gray-500">対応者: {report.resolved_by}</p>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

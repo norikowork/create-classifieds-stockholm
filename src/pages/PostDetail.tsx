@@ -47,6 +47,11 @@ const PostDetail = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [contactError, setContactError] = useState('');
   const [contactSuccess, setContactSuccess] = useState('');
+  const [isSpamReportModalOpen, setIsSpamReportModalOpen] = useState(false);
+  const [spamReason, setSpamReason] = useState('');
+  const [isSubmittingSpam, setIsSubmittingSpam] = useState(false);
+  const [spamReportError, setSpamReportError] = useState('');
+  const [spamReportSuccess, setSpamReportSuccess] = useState('');
 
   const conditionLabels = {
     'new': '新品',
@@ -84,7 +89,8 @@ const PostDetail = () => {
   const loadAllPosts = async () => {
     try {
       const postsData = await db.query('posts', {
-        _deleted: 'eq.0'
+        _deleted: 'eq.0',
+        is_hidden: 'eq.0'
       }, { orderBy: '_created_at', orderDirection: 'desc' });
       setAllPosts(postsData || []);
     } catch (error) {
@@ -888,6 +894,102 @@ useEffect(() => {
     }
   };
 
+  // スパム報告ハンドラー
+  const handleSpamReportClick = async () => {
+    const currentUser = await auth.getUser();
+    if (!currentUser) {
+      setIsAuthModalOpen(true);
+      return;
+    }
+    // 自分の投稿には報告ボタンを出さない
+    if (currentUser.userUuid === post._created_by) {
+      toast({
+        title: "エラー",
+        description: "自分の投稿は報告できません",
+        variant: "destructive"
+      });
+      return;
+    }
+    setSpamReportError('');
+    setSpamReportSuccess('');
+    setSpamReason('');
+    setIsSpamReportModalOpen(true);
+  };
+
+  const handleSpamReportSubmit = async () => {
+    const currentUser = await auth.getUser();
+    if (!currentUser || !currentUser.userUuid) {
+      setSpamReportError('ログインが必要です');
+      return;
+    }
+
+    // 二重報告チェック
+    try {
+      const existingReports = await db.query('spam_reports', {
+        post_id: `eq.${post._row_id}`,
+        reporter_uuid: `eq.${currentUser.userUuid}`,
+        status: 'eq.pending'
+      });
+
+      if (existingReports && existingReports.length > 0) {
+        setSpamReportError('すでに報告済みです');
+        toast({
+          title: "報告済み",
+          description: "この投稿は既に報告されています",
+          variant: "destructive"
+        });
+        return;
+      }
+    } catch (error) {
+      console.error('Error checking existing reports:', error);
+    }
+
+    // ユーザープロフィール取得
+    let reporterName = currentUser.displayName || currentUser.email || '匿名ユーザー';
+    try {
+      const profiles = await db.query('user_profiles', {
+        user_uuid: `eq.${currentUser.userUuid}`,
+        _deleted: 'eq.0'
+      });
+      if (profiles && profiles.length > 0) {
+        reporterName = profiles[0].display_name || reporterName;
+      }
+    } catch (error) {
+      console.error('Error getting user profile:', error);
+    }
+
+    setIsSubmittingSpam(true);
+    try {
+      await db.insert('spam_reports', {
+        post_id: post._row_id,
+        post_title: post.title,
+        reporter_uuid: currentUser.userUuid,
+        reporter_name: reporterName,
+        reason: spamReason.trim(),
+        status: 'pending',
+        _deleted: 0
+      });
+
+      setSpamReportSuccess('報告ありがとうございます。管理者が確認します');
+      toast({
+        title: "報告完了",
+        description: "報告ありがとうございます。管理者が確認します",
+      });
+      setIsSpamReportModalOpen(false);
+      setSpamReason('');
+    } catch (error) {
+      console.error('Error submitting spam report:', error);
+      setSpamReportError('報告の送信に失敗しました');
+      toast({
+        title: "エラー",
+        description: "報告の送信に失敗しました",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmittingSpam(false);
+    }
+  };
+
   const handleSignOut = async () => {
     try {
       await auth.signOut();
@@ -1488,6 +1590,17 @@ useEffect(() => {
                       問い合わせる
                     </Button>
                   )}
+                  {/* スパム報告ボタン（ログイン済みで自分の投稿ではない場合のみ表示） */}
+                  {user && user.userUuid && user.userUuid !== post._created_by && (
+                    <Button
+                      onClick={handleSpamReportClick}
+                      variant="outline"
+                      className="w-full mt-2 border-orange-200 text-orange-600 hover:bg-orange-50"
+                      size="sm"
+                    >
+                      ⚠ スパムを報告
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -1592,6 +1705,68 @@ useEffect(() => {
                 disabled={isSubmitting}
               >
                 {isSubmitting ? '送信中...' : '送信する'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Spam Report Modal */}
+      <Dialog open={isSpamReportModalOpen} onOpenChange={setIsSpamReportModalOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>⚠ スパムを報告</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              この投稿をスパムとして報告します。報告理由を入力してください（任意）。
+            </p>
+
+            {/* 理由入力欄 */}
+            <div>
+              <Label htmlFor="spamReason">報告理由（任意）</Label>
+              <Textarea
+                id="spamReason"
+                value={spamReason}
+                onChange={(e) => setSpamReason(e.target.value)}
+                placeholder="スパムの理由や詳細を入力してください..."
+                rows={4}
+              />
+            </div>
+
+            {/* エラー・成功メッセージ表示 */}
+            {spamReportError && (
+              <Alert variant="destructive" className="my-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{spamReportError}</AlertDescription>
+              </Alert>
+            )}
+            {spamReportSuccess && (
+              <Alert className="my-4 bg-green-50 border-green-200">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+                <AlertDescription className="text-green-800">{spamReportSuccess}</AlertDescription>
+              </Alert>
+            )}
+
+            {/* 送信ボタン */}
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsSpamReportModalOpen(false);
+                  setSpamReason('');
+                  setSpamReportError('');
+                  setSpamReportSuccess('');
+                }}
+              >
+                キャンセル
+              </Button>
+              <Button
+                onClick={handleSpamReportSubmit}
+                disabled={isSubmittingSpam}
+                className="bg-orange-600 hover:bg-orange-700"
+              >
+                {isSubmittingSpam ? '送信中...' : '報告する'}
               </Button>
             </div>
           </div>
