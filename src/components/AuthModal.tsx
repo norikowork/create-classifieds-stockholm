@@ -30,6 +30,7 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) =>
   const [confirmPassword, setConfirmPassword] = useState('');
   const [resetStep, setResetStep] = useState(1);
   const [error, setError] = useState('');
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
   const { toast } = useToast();
 
   const ensureProfileExists = async (user: any) => {
@@ -120,12 +121,20 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) =>
       // 新規登録（自動サインインされる）
       const user = await auth.signUp(registerEmail, registerPassword, registerName);
       
+      // 確認メールを送信
+      try {
+        await auth.resendActivation(registerEmail);
+      } catch (emailError) {
+        // メール送信失敗は登録自体は成功扱い
+        console.warn('Activation email sending failed:', emailError);
+      }
+      
       onAuthSuccess(user);
-      handleClose();
+      setRegistrationSuccess(true);
       
       toast({
         title: "登録完了",
-        description: "アカウントが作成されました！ようこそ、Sverige.JPへ！",
+        description: `${registerEmail} に確認メールを送信しました。メール内のリンクをクリックして、アカウントの有効化を完了してください。`,
         className: "bg-green-50 border-green-200 text-green-900",
       });
 
@@ -225,6 +234,7 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) =>
     setConfirmPassword('');
     setResetStep(1);
     setError('');
+    setRegistrationSuccess(false);
     onClose();
   };
 
@@ -389,47 +399,73 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) =>
           </TabsContent>
           
           <TabsContent value="register">
-            <form onSubmit={handleRegister} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="register-name">お名前</Label>
-                <Input
-                  id="register-name"
-                  type="text"
-                  value={registerName}
-                  onChange={(e) => setRegisterName(e.target.value)}
-                  required
-                />
+            {registrationSuccess ? (
+              <div className="space-y-4">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center space-y-3">
+                  <div className="text-green-600 text-4xl mb-2">✓</div>
+                  <h3 className="text-lg font-semibold text-green-900">登録ありがとうございます！</h3>
+                  <div className="text-sm text-green-700 space-y-2">
+                    <p>
+                      <span className="font-medium">{registerEmail}</span> に確認メールを送りました。
+                    </p>
+                    <p>
+                      メール内のリンクをクリックして、アカウントの有効化を完了してください。
+                    </p>
+                    <p className="text-xs text-green-600">
+                      ※ メールが届かない場合は迷惑メールフォルダもご確認ください
+                    </p>
+                  </div>
+                  <Button 
+                    onClick={handleClose}
+                    className="mt-4 bg-green-600 hover:bg-green-700"
+                  >
+                    閉じる
+                  </Button>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="register-email">メールアドレス</Label>
-                <Input
-                  id="register-email"
-                  type="email"
-                  value={registerEmail}
-                  onChange={(e) => setRegisterEmail(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="register-password">パスワード</Label>
-                <Input
-                  id="register-password"
-                  type="password"
-                  value={registerPassword}
-                  onChange={(e) => setRegisterPassword(e.target.value)}
-                  required
-                  minLength={6}
-                />
-              </div>
-              {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? '登録中...' : '登録'}
-              </Button>
-            </form>
+            ) : (
+              <form onSubmit={handleRegister} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="register-name">お名前</Label>
+                  <Input
+                    id="register-name"
+                    type="text"
+                    value={registerName}
+                    onChange={(e) => setRegisterName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="register-email">メールアドレス</Label>
+                  <Input
+                    id="register-email"
+                    type="email"
+                    value={registerEmail}
+                    onChange={(e) => setRegisterEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="register-password">パスワード</Label>
+                  <Input
+                    id="register-password"
+                    type="password"
+                    value={registerPassword}
+                    onChange={(e) => setRegisterPassword(e.target.value)}
+                    required
+                    minLength={6}
+                  />
+                </div>
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? '登録中...' : '登録'}
+                </Button>
+              </form>
+            )}
           </TabsContent>
         </Tabs>
       </DialogContent>
