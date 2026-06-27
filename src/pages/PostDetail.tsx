@@ -215,9 +215,15 @@ const PostDetail = () => {
           postId: postWithImages._row_id,
           postTitle: postWithImages.title,
           createdBy: postWithImages._created_by,
+          createdByType: typeof postWithImages._created_by,
           userName: postWithImages.userName,
           hasUserProfile: !!postWithImages.userProfile,
           userEmail: postWithImages.userProfile?.email
+        });
+
+        console.log('👤 投稿作成者情報:', {
+          _created_by: postData._created_by,
+          _created_byType: typeof postData._created_by
         });
 
         setPost(postWithImages);
@@ -235,9 +241,15 @@ const PostDetail = () => {
   const checkAuthStatus = async () => {
     try {
       const currentUser = await auth.getUser();
+      console.log('🔐 checkAuthStatus結果:', {
+        currentUser: currentUser,
+        userUuid: currentUser?.userUuid,
+        email: currentUser?.email,
+        emailVerified: currentUser?.emailVerified
+      });
       setUser(currentUser);
     } catch (error) {
-      console.error('Error checking auth status:', error);
+      console.error('❌ Error checking auth status:', error);
       setUser(null);
     }
   };
@@ -254,8 +266,13 @@ const PostDetail = () => {
   // Check admin status
   useEffect(() => {
     const checkAdmin = async () => {
+      console.log('👮 checkAdminが実行されました - user:', {
+        user: user,
+        userUuid: user?.userUuid
+      });
       if (user) {
         const adminStatus = await checkIsAdmin(user);
+        console.log('👮 adminStatus:', adminStatus);
         setIsAdmin(adminStatus);
       }
     };
@@ -896,13 +913,23 @@ useEffect(() => {
 
   // スパム報告ハンドラー
   const handleSpamReportClick = async () => {
+    console.log('🚨 handleSpamReportClickが呼び出されました');
     const currentUser = await auth.getUser();
+    console.log('🚨 handleSpamReportClick - currentUser:', {
+      currentUser: currentUser,
+      userUuid: currentUser?.userUuid,
+      postCreatedBy: post?._created_by,
+      isOwnPost: currentUser?.userUuid === post?._created_by
+    });
+
     if (!currentUser) {
+      console.log('🚨 ユーザー未ログイン - 認証モーダルを開きます');
       setIsAuthModalOpen(true);
       return;
     }
     // 自分の投稿には報告ボタンを出さない
     if (currentUser.userUuid === post._created_by) {
+      console.log('🚨 自分の投稿なので報告できません');
       toast({
         title: "エラー",
         description: "自分の投稿は報告できません",
@@ -910,6 +937,7 @@ useEffect(() => {
       });
       return;
     }
+    console.log('🚨 スパム報告モーダルを開きます');
     setSpamReportError('');
     setSpamReportSuccess('');
     setSpamReason('');
@@ -1059,6 +1087,14 @@ useEffect(() => {
       </div>
     );
   }
+
+  console.log('🎨 Rendering PostDetail:', {
+    post: post,
+    user: user,
+    userUuid: user?.userUuid,
+    postCreatedBy: post?._created_by,
+    shouldShowSpamButton: user && user.userUuid && user.userUuid !== post?._created_by
+  });
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -1591,7 +1627,37 @@ useEffect(() => {
                     </Button>
                   )}
                   {/* スパム報告ボタン（ログイン済みで自分の投稿ではない場合のみ表示） */}
-                  {user && user.userUuid && user.userUuid !== post._created_by && (
+                  {(() => {
+                    const isLoggedIn = !!user;
+                    const hasUserUuid = !!user?.userUuid;
+                    const isNotOwnPost = user?.userUuid !== post?._created_by;
+                    const shouldShow = isLoggedIn && hasUserUuid && isNotOwnPost;
+
+                    console.log('🔍 スパム報告ボタン表示条件チェック:', {
+                      isLoggedIn,
+                      hasUserUuid,
+                      isNotOwnPost,
+                      shouldShow,
+                      user: user,
+                      userUuid: user?.userUuid,
+                      postCreatedBy: post?._created_by,
+                      postCreatedByType: typeof post?._created_by,
+                      userUuidType: typeof user?.userUuid
+                    });
+
+                    // デバッグ: 条件が満たされない理由
+                    if (!shouldShow) {
+                      if (!isLoggedIn) {
+                        console.log('⚠️ スパム報告ボタン非表示: ユーザー未ログイン');
+                      } else if (!hasUserUuid) {
+                        console.log('⚠️ スパム報告ボタン非表示: userUuidなし');
+                      } else if (!isNotOwnPost) {
+                        console.log('⚠️ スパム報告ボタン非表示: 自分の投稿');
+                      }
+                    }
+
+                    return shouldShow;
+                  })() && (
                     <Button
                       onClick={handleSpamReportClick}
                       variant="outline"
