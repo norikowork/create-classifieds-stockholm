@@ -939,7 +939,7 @@ const Index = () => {
           <>
             {/* Category-based summary list - Only show when "All" is selected and no search term */}
             {selectedCategory === '' && !searchTerm ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {categories
                   .filter(cat => cat._deleted !== 1)
                   .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
@@ -955,30 +955,32 @@ const Index = () => {
                     return (
                       <div key={category.uuid} className="bg-white rounded-lg border">
                         {/* Category Header */}
-                        <div className="border-b p-4">
+                        <div className="border-b p-3">
                           <div className="flex items-center gap-2">
-                            <CategoryIcon className="w-5 h-5" style={{ color: category.color }} />
-                            <h2 className="text-lg font-semibold">{category.name_ja}</h2>
+                            <CategoryIcon className="w-4 h-4" style={{ color: category.color }} />
+                            <h2 className="text-base font-semibold">{category.name_ja}</h2>
                           </div>
                         </div>
                         
                         {/* Category Posts */}
-                        <div className="p-4">
+                        <div className="p-3">
                           {categoryPosts.length === 0 ? (
-                            <p className="text-gray-500 text-sm py-4">投稿がありません</p>
+                            <p className="text-gray-500 text-xs py-2">投稿がありません</p>
                           ) : (
-                            <div className="space-y-2">
-                              {categoryPosts.map((post) => (
+                            <div className="space-y-0">
+                              {categoryPosts.map((post, index) => (
                                 <Link
                                   key={post._row_id}
                                   to={`/post/${post._row_id}`}
-                                  className="block hover:bg-gray-50 rounded p-2 transition-colors"
+                                  className={`block hover:bg-gray-50 transition-colors ${
+                                    index < categoryPosts.length - 1 ? 'border-b border-dotted border-gray-200' : ''
+                                  }`}
                                 >
-                                  <div className="flex items-center gap-3">
-                                    <span className="text-xs text-gray-500 flex-shrink-0">
+                                  <div className="flex items-center gap-2 py-1.5 px-1">
+                                    <span className="text-xs text-gray-500 flex-shrink-0 w-12">
                                       {formatDateShort(post._created_at)}
                                     </span>
-                                    <span className="text-sm truncate flex-1">
+                                    <span className="text-xs truncate flex-1 leading-tight">
                                       {post.title}
                                     </span>
                                   </div>
@@ -991,10 +993,10 @@ const Index = () => {
                           {categoryPosts.length > 0 && (
                             <button
                               onClick={() => handleCategoryChange(category.uuid)}
-                              className="text-blue-600 hover:underline text-sm mt-3 flex items-center gap-1"
+                              className="text-blue-600 hover:underline text-xs mt-2 flex items-center gap-1"
                             >
                               もっと見る
-                              <ArrowRight className="w-4 h-4" />
+                              <ArrowRight className="w-3 h-3" />
                             </button>
                           )}
                         </div>
