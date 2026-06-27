@@ -927,17 +927,7 @@ const Admin = () => {
     return filtered;
   };
 
-  const formatDate = (timestamp) => {
-    if (!timestamp) return '不明';
-    const date = new Date(timestamp * 1000);
-    return date.toLocaleString('ja-JP', {
-      year: 'numeric',
-      month: 'numeric',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+
 
   const getCategoryName = (categoryUuid) => {
     const category = categories.find(cat => cat._row_id === categoryUuid || cat.uuid === categoryUuid);
