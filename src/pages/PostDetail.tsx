@@ -20,6 +20,7 @@ import { checkIsAdmin } from '@/lib/isAdmin';
 import { useToast } from '@/hooks/use-toast';
 import { statusLabels, postTypeLabels } from '@/constants/postLabels';
 import { getMessageLimit } from '@/constants/plans';
+import { resolveAuthorName } from '@/lib/utils/authorHelpers';
 
 const PostDetail = () => {
   const { postId } = useParams();
@@ -136,7 +137,6 @@ const PostDetail = () => {
         const postData = postsData[0];
 
         // Get user profile information
-        let userName = 'SverigeJP スタッフ';
         let userProfile = null;
 
         if (postData._created_by) {
@@ -149,7 +149,6 @@ const PostDetail = () => {
 
             if (profilesData && profilesData.length > 0) {
               userProfile = profilesData[0];
-              userName = userProfile.display_name || 'SverigeJP スタッフ';
 
               console.log('👤 User profile found:', {
                 user_uuid: postData._created_by,
@@ -168,22 +167,15 @@ const PostDetail = () => {
                 }
               }));
             } else {
-              // Fallback to user data
-              const usersData = await db.query('users', {
-                user_uuid: `eq.${postData._created_by}`,
-                _deleted: 'eq.0'
-              });
-              if (usersData && usersData.length > 0) {
-                const user = usersData[0];
-                userName = user.first_name && user.last_name
-                  ? `${user.first_name} ${user.last_name}`
-                  : user.email || 'SverigeJP スタッフ';
-              }
+              console.log('⚠️ User profile not found for:', postData._created_by);
             }
           } catch (e) {
             console.warn('Error fetching user profile for post:', postData._row_id, e);
           }
         }
+
+        // 投稿者名を解決
+        const userName = await resolveAuthorName(postData._created_by);
 
         // Parse images JSON for the post
         let images = [];

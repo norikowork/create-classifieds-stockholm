@@ -19,6 +19,7 @@ import { PostModal } from '@/components/PostModal';
 import Footer from '@/components/Footer';
 import { statusLabels } from '@/constants/postLabels';
 import JSZip from 'jszip';
+import { addAuthorNamesToPosts } from '@/lib/utils/authorHelpers';
 
 const categoryIcons = {
   'cat-sell': '🛍️',
@@ -110,49 +111,9 @@ const Admin = () => {
       // ユーザーリストはuser_profilesのみを使用
       setAllUsers(userProfiles);
       
-      // Add creator display name to posts
-      console.log('🔍 投稿者名解決開始 - 投稿数:', posts.length, 'ユーザープロファイル数:', userProfiles.length);
-      
-      // 投稿者名マップを作成（パフォーマンス向上）
-      const profileMap = new Map();
-      userProfiles.forEach(profile => {
-        profileMap.set(profile.user_uuid, profile);
-      });
-      
-      const postsWithCreatorNames = posts.map(post => {
-        const creatorProfile = profileMap.get(post._created_by);
-        const displayName = creatorProfile?.display_name || creatorProfile?.email || '不明';
-        const creatorId = post._created_by ? post._created_by.substring(0, 8) : '(IDなし)';
-        
-        console.log('📝 投稿者名解決:', {
-          postId: post._row_id,
-          postTitle: post.title,
-          createdBy: post._created_by,
-          createdByType: typeof post._created_by,
-          foundProfile: !!creatorProfile,
-          displayName,
-          creatorId
-        });
-        
-        return {
-          ...post,
-          creatorDisplayName: displayName,
-          creatorId: creatorId
-        };
-      });
-      
-      // Add creator display name to flagged posts
-      const flaggedWithCreatorNames = flagged.map(post => {
-        const creatorProfile = profileMap.get(post._created_by);
-        const displayName = creatorProfile?.display_name || creatorProfile?.email || '不明';
-        const creatorId = post._created_by ? post._created_by.substring(0, 8) : '(IDなし)';
-        
-        return {
-          ...post,
-          creatorDisplayName: displayName,
-          creatorId: creatorId
-        };
-      });
+      // 共通ヘルパー関数で投稿者名を追加
+      const postsWithCreatorNames = await addAuthorNamesToPosts(posts, userProfiles);
+      const flaggedWithCreatorNames = await addAuthorNamesToPosts(flagged, userProfiles);
       
       setAllPosts(postsWithCreatorNames);
       setFlaggedPosts(flaggedWithCreatorNames);
