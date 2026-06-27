@@ -559,6 +559,13 @@ const Index = () => {
     });
   };
 
+  const formatDateShort = (timestamp) => {
+    const date = new Date(timestamp * 1000);
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${month}/${day}`;
+  };
+
   const getMonthOptions = () => {
     const options = [];
     const now = new Date();
@@ -927,147 +934,217 @@ const Index = () => {
           </div>
         )}
 
-        {/* List View - Thumbnail + Text */}
+        {/* List View */}
         {viewMode === 'list' && (
-          <div className="space-y-3">
-            {currentPosts.map((post) => (
-              <Card key={post._row_id} className="hover:shadow-lg transition-shadow">
-                <CardContent className="p-3">
-                  <div className="flex gap-3">
-                        {/* Thumbnail */}
-                        <div className="flex-shrink-0">
-                          <Link to={`/post/${post._row_id}`}>
-                            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded overflow-hidden bg-gray-100">
-                              <img
-                                src={
-                                  post.images && Array.isArray(post.images) && post.images.length > 0 && post.images[0]
-                                    ? post.images[0]
-                                    : '/content/templates/sverige_blank.png'
-                                }
-                                alt={post.title}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  if (target.src !== '/content/templates/sverige_blank.png') {
-                                    target.src = '/content/templates/sverige_blank.png';
-                                  }
-                                }}
-                              />
-                            </div>
-                          </Link>
+          <>
+            {/* Category-based summary list - Only show when "All" is selected and no search term */}
+            {selectedCategory === '' && !searchTerm ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {categories
+                  .filter(cat => cat._deleted !== 1)
+                  .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+                  .map((category) => {
+                    // Get posts for this category
+                    const categoryPosts = allPosts
+                      .filter(post => post.category_uuid === category.uuid && post.status === 'active')
+                      .sort((a, b) => b._created_at - a._created_at)
+                      .slice(0, 8);
+                    
+                    const CategoryIcon = categoryIcons[category.uuid] || List;
+                    
+                    return (
+                      <div key={category.uuid} className="bg-white rounded-lg border">
+                        {/* Category Header */}
+                        <div className="border-b p-4">
+                          <div className="flex items-center gap-2">
+                            <CategoryIcon className="w-5 h-5" style={{ color: category.color }} />
+                            <h2 className="text-lg font-semibold">{category.name_ja}</h2>
+                          </div>
                         </div>
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-start gap-2 mb-1">
-                        <Link to={`/post/${post._row_id}`}>
-                          <h3 className="text-base font-semibold truncate hover:text-blue-600 transition-colors cursor-pointer">{post.title}</h3>
-                        </Link>
+                        
+                        {/* Category Posts */}
+                        <div className="p-4">
+                          {categoryPosts.length === 0 ? (
+                            <p className="text-gray-500 text-sm py-4">投稿がありません</p>
+                          ) : (
+                            <div className="space-y-2">
+                              {categoryPosts.map((post) => (
+                                <Link
+                                  key={post._row_id}
+                                  to={`/post/${post._row_id}`}
+                                  className="block hover:bg-gray-50 rounded p-2 transition-colors"
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <span className="text-xs text-gray-500 flex-shrink-0">
+                                      {formatDateShort(post._created_at)}
+                                    </span>
+                                    <span className="text-sm truncate flex-1">
+                                      {post.title}
+                                    </span>
+                                  </div>
+                                </Link>
+                              ))}
+                            </div>
+                          )}
+                          
+                          {/* More Link */}
+                          {categoryPosts.length > 0 && (
+                            <button
+                              onClick={() => handleCategoryChange(category.uuid)}
+                              className="text-blue-600 hover:underline text-sm mt-3 flex items-center gap-1"
+                            >
+                              もっと見る
+                              <ArrowRight className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
                       </div>
-                      {/* Date and Price row */}
-                      <div className="flex items-center gap-2 mb-2 text-xs text-gray-500">
-                        <span>{formatDate(post._created_at)}</span>
-                        {post.category_uuid === 'cat-job-seeking' && post.employment_type && (
-                          <span className="font-semibold text-blue-600">
-                            {employmentTypeLabels[post.employment_type] || post.employment_type}
-                          </span>
-                        )}
-                        {post.post_type === 'free' && post.price && (
-                          <span className="font-semibold text-green-600">
-                            {post.price} SEK
-                          </span>
-                        )}
-                        {post.post_type === 'event' && post.event_date_readable && (
-                          <span className="font-semibold text-purple-600">
-                            📅 {post.event_date_readable}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-gray-600 text-sm line-clamp-2 mb-2">
-                        {post.description}
-                      </p>
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
-                        {post.category_uuid && (
-                          <button
-                            onClick={() => {
-                              setSelectedCategory(post.category_uuid);
-                              setSearchParams({ category: post.category_uuid });
-                            }}
-                            className="flex items-center text-blue-700 hover:underline"
-                          >
-                            <span className="font-medium">{getCategoryName(post.category_uuid)}</span>
-                            {post.subcategory_uuid && (
-                              <span className="ml-1">
-                                {' > '}{getSubcategoryName(post.subcategory_uuid)}
+                    );
+                  })}
+              </div>
+            ) : (
+              /* Traditional list view - for search results or specific category */
+              <div className="space-y-3">
+                {currentPosts.map((post) => (
+                  <Card key={post._row_id} className="hover:shadow-lg transition-shadow">
+                    <CardContent className="p-3">
+                      <div className="flex gap-3">
+                            {/* Thumbnail */}
+                            <div className="flex-shrink-0">
+                              <Link to={`/post/${post._row_id}`}>
+                                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded overflow-hidden bg-gray-100">
+                                  <img
+                                    src={
+                                      post.images && Array.isArray(post.images) && post.images.length > 0 && post.images[0]
+                                        ? post.images[0]
+                                        : '/content/templates/sverige_blank.png'
+                                    }
+                                    alt={post.title}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement;
+                                      if (target.src !== '/content/templates/sverige_blank.png') {
+                                        target.src = '/content/templates/sverige_blank.png';
+                                      }
+                                    }}
+                                  />
+                                </div>
+                              </Link>
+                            </div>
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between items-start gap-2 mb-1">
+                            <Link to={`/post/${post._row_id}`}>
+                              <h3 className="text-base font-semibold truncate hover:text-blue-600 transition-colors cursor-pointer">{post.title}</h3>
+                            </Link>
+                          </div>
+                          {/* Date and Price row */}
+                          <div className="flex items-center gap-2 mb-2 text-xs text-gray-500">
+                            <span>{formatDate(post._created_at)}</span>
+                            {post.category_uuid === 'cat-job-seeking' && post.employment_type && (
+                              <span className="font-semibold text-blue-600">
+                                {employmentTypeLabels[post.employment_type] || post.employment_type}
                               </span>
                             )}
-                          </button>
-                        )}
-                        <span className="flex items-center">
-                          <User className="w-3 h-3 mr-1" />
-                          {post.userName || 'SverigeJP スタッフ'}
-                        </span>
-                        {post.location_uuid && (
-                          <span className="flex items-center">
-                            <Home className="w-3 h-3 mr-1" />
-                            {getLocationName(post.location_uuid)}
-                          </span>
-                        )}
-                        {post.postal_code && (
-                          <span className="flex items-center">
-                            <MapPin className="w-3 h-3 mr-1" />
-                            {post.postal_code}
-                          </span>
-                        )}
-                        {post.brand && (
-                          <span className="flex items-center">
-                            <span className="font-medium">ブランド:</span> {post.brand}
-                          </span>
-                        )}
-                        {post.model_name && (
-                          <span className="flex items-center">
-                            <span className="font-medium">モデル:</span> {post.model_name}
-                          </span>
-                        )}
-                        {post.size_dimensions && (
-                          <span className="flex items-center">
-                            <span className="font-medium">サイズ:</span> {post.size_dimensions}
-                          </span>
-                        )}
-                        {post.company_name && (
-                          <span className="flex items-center">
-                            <span className="font-medium">会社:</span> {post.company_name}
-                          </span>
-                        )}
-                        {post.salary && (
-                          <span className="flex items-center font-semibold text-green-600">
-                            <span className="font-medium text-gray-700">給料:</span> {post.salary}
-                          </span>
-                        )}
-                        {post.employment_type && (
-                          <span className="flex items-center">
-                            <span className="font-medium">形態:</span> {employmentTypeLabels[post.employment_type] || post.employment_type}
-                          </span>
-                        )}
-                        {post.experience_level && (
-                          <span className="flex items-center">
-                            <span className="font-medium">経験:</span> {experienceLevelLabels[post.experience_level] || post.experience_level}
-                          </span>
-                        )}
+                            {post.post_type === 'free' && post.price && (
+                              <span className="font-semibold text-green-600">
+                                {post.price} SEK
+                              </span>
+                            )}
+                            {post.post_type === 'event' && post.event_date_readable && (
+                              <span className="font-semibold text-purple-600">
+                                📅 {post.event_date_readable}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-gray-600 text-sm line-clamp-2 mb-2">
+                            {post.description}
+                          </p>
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+                            {post.category_uuid && (
+                              <button
+                                onClick={() => {
+                                  setSelectedCategory(post.category_uuid);
+                                  setSearchParams({ category: post.category_uuid });
+                                }}
+                                className="flex items-center text-blue-700 hover:underline"
+                              >
+                                <span className="font-medium">{getCategoryName(post.category_uuid)}</span>
+                                {post.subcategory_uuid && (
+                                  <span className="ml-1">
+                                    {' > '}{getSubcategoryName(post.subcategory_uuid)}
+                                  </span>
+                                )}
+                              </button>
+                            )}
+                            <span className="flex items-center">
+                              <User className="w-3 h-3 mr-1" />
+                              {post.userName || 'SverigeJP スタッフ'}
+                            </span>
+                            {post.location_uuid && (
+                              <span className="flex items-center">
+                                <Home className="w-3 h-3 mr-1" />
+                                {getLocationName(post.location_uuid)}
+                              </span>
+                            )}
+                            {post.postal_code && (
+                              <span className="flex items-center">
+                                <MapPin className="w-3 h-3 mr-1" />
+                                {post.postal_code}
+                              </span>
+                            )}
+                            {post.brand && (
+                              <span className="flex items-center">
+                                <span className="font-medium">ブランド:</span> {post.brand}
+                              </span>
+                            )}
+                            {post.model_name && (
+                              <span className="flex items-center">
+                                <span className="font-medium">モデル:</span> {post.model_name}
+                              </span>
+                            )}
+                            {post.size_dimensions && (
+                              <span className="flex items-center">
+                                <span className="font-medium">サイズ:</span> {post.size_dimensions}
+                              </span>
+                            )}
+                            {post.company_name && (
+                              <span className="flex items-center">
+                                <span className="font-medium">会社:</span> {post.company_name}
+                              </span>
+                            )}
+                            {post.salary && (
+                              <span className="flex items-center font-semibold text-green-600">
+                                <span className="font-medium text-gray-700">給料:</span> {post.salary}
+                              </span>
+                            )}
+                            {post.employment_type && (
+                              <span className="flex items-center">
+                                <span className="font-medium">形態:</span> {employmentTypeLabels[post.employment_type] || post.employment_type}
+                              </span>
+                            )}
+                            {post.experience_level && (
+                              <span className="flex items-center">
+                                <span className="font-medium">経験:</span> {experienceLevelLabels[post.experience_level] || post.experience_level}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        {/* Action */}
+                        <div className="flex items-center flex-shrink-0">
+                          <Link to={`/post/${post._row_id}`}>
+                            <Button variant="outline" size="sm">
+                              <ArrowRight className="w-4 h-4" />
+                            </Button>
+                          </Link>
+                        </div>
                       </div>
-                    </div>
-                    {/* Action */}
-                    <div className="flex items-center flex-shrink-0">
-                      <Link to={`/post/${post._row_id}`}>
-                        <Button variant="outline" size="sm">
-                          <ArrowRight className="w-4 h-4" />
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </>
         )}
 
         {/* Images Only View */}
