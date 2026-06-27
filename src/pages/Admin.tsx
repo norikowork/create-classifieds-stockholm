@@ -20,20 +20,6 @@ import Footer from '@/components/Footer';
 import { statusLabels } from '@/constants/postLabels';
 import JSZip from 'jszip';
 
-// 日付をフォーマットする関数（ユーザー一覧表示用）
-const formatDate = (timestamp: number | null | undefined): string => {
-  if (!timestamp) return '不明';
-  try {
-    const date = new Date(timestamp * 1000); // UNIX秒をミリ秒に変換
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}/${month}/${day}`;
-  } catch {
-    return '不明';
-  }
-};
-
 const categoryIcons = {
   'cat-sell': '🛍️',
   'cat-wanted': '🔍',
@@ -81,7 +67,19 @@ const Admin = () => {
   const { toast } = useToast();
 
 
-
+  // 日付をフォーマットする関数（ユーザー一覧表示用）
+  const formatDate = (timestamp: number | null | undefined): string => {
+    if (!timestamp) return '不明';
+    try {
+      const date = new Date(timestamp * 1000); // UNIX秒をミリ秒に変換
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}/${month}/${day}`;
+    } catch {
+      return '不明';
+    }
+  };
   useEffect(() => {
     checkAdminAccess();
   }, []);
@@ -929,7 +927,17 @@ const Admin = () => {
     return filtered;
   };
 
-
+  const formatDate = (timestamp) => {
+    if (!timestamp) return '不明';
+    const date = new Date(timestamp * 1000);
+    return date.toLocaleString('ja-JP', {
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
 
   const getCategoryName = (categoryUuid) => {
     const category = categories.find(cat => cat._row_id === categoryUuid || cat.uuid === categoryUuid);
