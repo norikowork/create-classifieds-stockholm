@@ -990,11 +990,11 @@ const Index = () => {
                                     index < categoryItems.length - 1 ? 'border-b border-dotted border-gray-200' : ''
                                   }`}
                                 >
-                                  <div className="flex items-center gap-2 py-1.5 px-1">
-                                    <span className="text-xs text-gray-500 flex-shrink-0 w-12">
+                                  <div className="flex items-center gap-2 py-1.5 px-1 min-w-0">
+                                    <span className="text-xs text-gray-500 whitespace-nowrap flex-shrink-0 w-12">
                                       {formatDateShort(item._created_at)}
                                     </span>
-                                    <span className="text-xs truncate flex-1 leading-tight">
+                                    <span className="text-xs truncate flex-1 min-w-0 leading-tight">
                                       {item.title}
                                     </span>
                                   </div>
