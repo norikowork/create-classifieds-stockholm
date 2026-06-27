@@ -970,10 +970,24 @@ const Index = () => {
                       <div key={category.uuid} className="bg-white rounded-lg border">
                         {/* Category Header */}
                         <div className="border-b p-3">
-                          <div className="flex items-center gap-2">
-                            <CategoryIcon className="w-4 h-4" style={{ color: category.color }} />
-                            <h2 className="text-base font-semibold">{category.name_ja}</h2>
-                          </div>
+                          {isBulletinBoard ? (
+                            <Link to="/forum" className="block">
+                              <div className="flex items-center gap-2 hover:bg-gray-50 transition-colors rounded p-1 -m-1 cursor-pointer">
+                                <CategoryIcon className="w-4 h-4" style={{ color: category.color }} />
+                                <h2 className="text-base font-semibold hover:text-blue-600 transition-colors">{category.name_ja}</h2>
+                              </div>
+                            </Link>
+                          ) : (
+                            <button
+                              onClick={() => handleCategoryChange(category.uuid)}
+                              className="w-full text-left"
+                            >
+                              <div className="flex items-center gap-2 hover:bg-gray-50 transition-colors rounded p-1 -m-1 cursor-pointer">
+                                <CategoryIcon className="w-4 h-4" style={{ color: category.color }} />
+                                <h2 className="text-base font-semibold hover:text-blue-600 transition-colors">{category.name_ja}</h2>
+                              </div>
+                            </button>
+                          )}
                         </div>
                         
                         {/* Category Posts/Topics */}
