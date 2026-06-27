@@ -114,73 +114,19 @@ const Admin = () => {
 
   const loadAdminData = async () => {
     try {
-      // 認証ユーザー一覧を取得
-      const authResult = await auth.listUsers();
-      const authUsers = Array.isArray(authResult) ? authResult : (authResult?.data || []);
-      
-      // user_profilesを取得
-      const userProfiles = await db.query('user_profiles', { _deleted: 'eq.0' });
-      
-      // 投稿、カテゴリも取得
-      const [posts, flagged, categoriesData] = await Promise.all([
+      const [userProfiles, posts, flagged, categoriesData] = await Promise.all([
+        db.query('user_profiles', { _deleted: 'eq.0', order: '_created_at.desc' }),
         db.query('posts', { _deleted: 'eq.0', order: '_created_at.desc' }),
         db.query('posts', { status: 'eq.flagged', order: '_created_at.desc' }),
         db.query('categories', { _deleted: 'eq.0' })
       ]);
       
-      // 認証ユーザーを基準にユーザーリストを作成
-      const mergedUsers = authUsers.map(authUser => {
-        const profile = userProfiles.find(p => p.user_uuid === authUser.userUuid);
-        
-        return {
-          user_uuid: authUser.userUuid,
-          email: authUser.email || (profile?.email || ''),
-          display_name: profile?.display_name || authUser.firstName || authUser.email || '不明',
-          role: profile?.role || 'user',
-          is_blocked: profile?.is_blocked || 0,
-          plan: profile?.plan || 'free',
-          emailVerified: authUser.emailVerified || false,
-          profile_exists: !!profile,
-          _created_at: profile?._created_at || null,
-          _updated_at: profile?._updated_at || null,
-          _row_id: profile?._row_id || null,
-          firstName: authUser.firstName,
-          lastName: authUser.lastName,
-          teamUuid: authUser.teamUuid,
-          isPrimaryTeam: authUser.isPrimaryTeam,
-          groups: authUser.groups || []
-        };
-      });
-      
-      // 認証ユーザーにいないがuser_profilesにある行を追加
-      const profileOnlyUsers = userProfiles.filter(profile => 
-        !authUsers.find(authUser => authUser.userUuid === profile.user_uuid)
-      ).map(profile => ({
-        user_uuid: profile.user_uuid,
-        email: profile.email || '',
-        display_name: profile.display_name || profile.email || '不明',
-        role: profile.role || 'user',
-        is_blocked: profile.is_blocked || 0,
-        plan: profile.plan || 'free',
-        emailVerified: false,
-        profile_exists: true,
-        _created_at: profile._created_at,
-        _updated_at: profile._updated_at,
-        _row_id: profile._row_id,
-        firstName: profile.email?.split('@')[0] || '',
-        lastName: '',
-        teamUuid: null,
-        isPrimaryTeam: false,
-        groups: []
-      }));
-      
-      // マージしたユーザーリスト
-      const allUsersList = [...mergedUsers, ...profileOnlyUsers];
-      setAllUsers(allUsersList);
+      // ユーザーリストはuser_profilesのみを使用
+      setAllUsers(userProfiles);
       
       // Add creator display name to posts
       const postsWithCreatorNames = posts.map(post => {
-        const creatorProfile = allUsersList.find(user => user.user_uuid === post._created_by);
+        const creatorProfile = userProfiles.find(profile => profile.user_uuid === post._created_by);
         const displayName = creatorProfile?.display_name || '不明';
         
         return {
@@ -191,7 +137,7 @@ const Admin = () => {
       
       // Add creator display name to flagged posts
       const flaggedWithCreatorNames = flagged.map(post => {
-        const creatorProfile = allUsersList.find(user => user.user_uuid === post._created_by);
+        const creatorProfile = userProfiles.find(profile => profile.user_uuid === post._created_by);
         const displayName = creatorProfile?.display_name || '不明';
         
         return {
@@ -204,10 +150,10 @@ const Admin = () => {
       setFlaggedPosts(flaggedWithCreatorNames);
       setCategories(categoriesData);
       
-      // Calculate stats - マージ後のリストを使用
-      const blockedCount = allUsersList.filter(u => u.is_blocked === 1).length;
+      // Calculate stats
+      const blockedCount = userProfiles.filter(u => u.is_blocked === 1).length;
       setStats({
-        totalUsers: allUsersList.length,
+        totalUsers: userProfiles.length,
         totalPosts: posts.length,
         flaggedPosts: flagged.length,
         blockedUsers: blockedCount
