@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Shield, Users, FileText, AlertTriangle, Ban, Check, X, Eye, Search, Filter, Trash, Plus, Edit, CheckCircle, Clock, Download, Package } from 'lucide-react';
+import { Shield, Users, FileText, AlertTriangle, Ban, Check, X, Eye, Search, Filter, Trash, Plus, Edit, CheckCircle, Clock, Download, Package, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -61,6 +61,9 @@ const Admin = () => {
     blockedUsers: 0
   });
   const [isVerifyingEmails, setIsVerifyingEmails] = useState(false);
+  const [testEmail, setTestEmail] = useState('noriko@rational.ventures');
+  const [isTestingEmail, setIsTestingEmail] = useState(false);
+  const [emailTestResults, setEmailTestResults] = useState<string>('');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -767,6 +770,65 @@ const Admin = () => {
     }
   };
 
+  const handleTestAuthEmails = async () => {
+    if (!testEmail || !testEmail.includes('@')) {
+      toast({
+        title: "エラー",
+        description: "有効なメールアドレスを入力してください",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsTestingEmail(true);
+    let results = '=== 認証メール送信テスト結果 ===\n';
+    results += `テスト対象: ${testEmail}\n`;
+    results += `実行時刻: ${new Date().toLocaleString('ja-JP')}\n\n`;
+    
+    // Test 1: auth.resendActivation
+    results += '--- テスト1: auth.resendActivation() ---\n';
+    try {
+      const result = await auth.resendActivation(testEmail);
+      results += `✅ 成功:\n`;
+      results += `- 戻り値: ${JSON.stringify(result, null, 2)}\n`;
+      results += `- データ型: ${typeof result}\n`;
+      results += `- データキー: ${Object.keys(result || {}).join(', ')}\n\n`;
+    } catch (error: any) {
+      results += `❌ エラー:\n`;
+      results += `- error.message: ${error.message}\n`;
+      results += `- エラー全文: ${JSON.stringify(error, null, 2)}\n`;
+      results += `- エラーコード: ${error.code || 'N/A'}\n`;
+      results += `- エラー名: ${error.name || 'N/A'}\n\n`;
+    }
+    
+    // Test 2: auth.requestPasswordReset
+    results += '--- テスト2: auth.requestPasswordReset() ---\n';
+    try {
+      const result = await auth.requestPasswordReset(testEmail);
+      results += `✅ 成功:\n`;
+      results += `- 戻り値: ${JSON.stringify(result, null, 2)}\n`;
+      results += `- データ型: ${typeof result}\n`;
+      results += `- データキー: ${Object.keys(result || {}).join(', ')}\n\n`;
+    } catch (error: any) {
+      results += `❌ エラー:\n`;
+      results += `- error.message: ${error.message}\n`;
+      results += `- エラー全文: ${JSON.stringify(error, null, 2)}\n`;
+      results += `- エラーコード: ${error.code || 'N/A'}\n`;
+      results += `- エラー名: ${error.name || 'N/A'}\n\n`;
+    }
+    
+    results += '--- テスト完了 ---\n';
+    results += `※ 結果をメールボックス(迷惑メールフォルダ含む)で確認してください\n`;
+    
+    setEmailTestResults(results);
+    
+    toast({
+      title: "テスト完了",
+      description: `${testEmail} に認証メールを送信しました。結果を確認してください。`,
+    });
+    
+    setIsTestingEmail(false);
+  };
 
   const handleUpdatePost = async (postId, updates) => {
     try {
@@ -1137,6 +1199,64 @@ const Admin = () => {
                 <p>• 既に確認済みのユーザーはスキップされます</p>
                 <p>• 各更新の間に 100ms 待機して API レート制限を考慮します</p>
                 <p>• 完了後、更新人数を toast で報告します（他のデータは変更しません）</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Auth Email Test */}
+          <Card className="bg-orange-50 border-orange-200">
+            <CardHeader>
+              <div>
+                <CardTitle className="text-orange-900">認証メール送信テスト</CardTitle>
+                <p className="text-sm text-orange-700 mt-1">
+                  ※ auth.resendActivation() と auth.requestPasswordReset() の結果を診断します
+                </p>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Input
+                  type="email"
+                  placeholder="テスト送信先メールアドレス"
+                  value={testEmail}
+                  onChange={(e) => setTestEmail(e.target.value)}
+                  className="max-w-md"
+                />
+                <Button 
+                  onClick={handleTestAuthEmails}
+                  disabled={isTestingEmail}
+                  className="bg-orange-600 hover:bg-orange-700"
+                >
+                  <Mail className="h-4 w-4 mr-2" />
+                  {isTestingEmail ? 'テスト中...' : '認証メールテスト送信'}
+                </Button>
+              </div>
+              
+              {emailTestResults && (
+                <div className="mt-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-medium text-orange-900">テスト結果:</p>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setEmailTestResults('')}
+                    >
+                      クリア
+                    </Button>
+                  </div>
+                  <textarea
+                    readOnly
+                    value={emailTestResults}
+                    className="w-full h-96 p-3 text-xs font-mono bg-white border border-orange-200 rounded-lg"
+                  />
+                </div>
+              )}
+              
+              <div className="text-sm text-orange-700 space-y-1">
+                <p>• 入力されたメールアドレスに認証メールを送信します</p>
+                <p>• auth.resendActivation() と auth.requestPasswordReset() を順番に実行</p>
+                <p>• 成功時の戻り値、失敗時のエラー全文を表示します</p>
+                <p>• 結果を確認したら、メールボックス(迷惑メールフォルダ含む)も確認してください</p>
               </div>
             </CardContent>
           </Card>
