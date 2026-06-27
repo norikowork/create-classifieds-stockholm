@@ -773,6 +773,15 @@ const Admin = () => {
 
   const handleMarkAsOk = async (postId, adminName) => {
     try {
+      // 投稿を再表示する（問題なし＝公開に戻す）
+      await db.update('posts',
+        { _row_id: `eq.${postId}` },
+        { 
+          is_hidden: 0,
+          _updated_at: Math.floor(Date.now() / 1000)
+        }
+      );
+      
       // 関連するスパム報告をokに更新
       await db.update('spam_reports',
         { post_id: `eq.${postId}` },
@@ -785,7 +794,7 @@ const Admin = () => {
       
       toast({
         title: "対応完了",
-        description: "問題なしとしてマークしました",
+        description: "問題なしとしてマークし、投稿を再表示しました",
       });
       
       loadAdminData();
