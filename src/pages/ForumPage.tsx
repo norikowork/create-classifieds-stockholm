@@ -233,7 +233,7 @@ export default function ForumPage() {
       <div className="flex-1 bg-gray-50 py-8">
         <div className="container mx-auto px-4">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">掲示板</h1>
+          <h1 className="text-3xl font-bold mb-2">情報・掲示板</h1>
           <p className="text-gray-600">
             ストックホルム生活の質問、情報共有、雑談など
           </p>

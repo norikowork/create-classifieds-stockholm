@@ -882,7 +882,7 @@ const Footer = () => (
           <h3 className="font-semibold mb-2">リンク</h3>
           <ul className="space-y-1 text-gray-600">
             <li><Link to="/" className="hover:text-gray-900">ホーム</Link></li>
-            <li><Link to="/forum" className="hover:text-gray-900">掲示板</Link></li>
+            <li><Link to="/forum" className="hover:text-gray-900">情報・掲示板</Link></li>
           </ul>
         </div>
         <div>

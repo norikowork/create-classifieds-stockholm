@@ -176,7 +176,7 @@ export default function ForumTopicDetail() {
               <CardContent className="py-12 text-center text-gray-500">
                 <p>トピックが見つかりません</p>
                 <Link to="/forum">
-                  <Button className="mt-4">掲示板に戻る</Button>
+                  <Button className="mt-4">情報・掲示板に戻る</Button>
                 </Link>
               </CardContent>
             </Card>
@@ -195,7 +195,7 @@ export default function ForumTopicDetail() {
         <Link to="/forum">
           <Button variant="ghost" className="mb-4">
             <ArrowLeft className="w-4 h-4 mr-2" />
-            掲示板に戻る
+            情報・掲示板に戻る
           </Button>
         </Link>
 

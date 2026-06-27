@@ -87,7 +87,7 @@ const Footer = () => {
                 </li>
                 <li>
                   <Link to="/forum" className="text-gray-300 hover:text-white transition-colors">
-                    掲示板
+                    情報・掲示板
                   </Link>
                 </li>
                 <li>
