@@ -1,4 +1,4 @@
-import db from '@/lib/shared/kliv-database.js';
+import db from '@/lib/shared/kliv-database';
 
 /**
  * 投稿者名を解決するヘルパー関数
