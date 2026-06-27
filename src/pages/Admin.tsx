@@ -60,6 +60,7 @@ const Admin = () => {
     flaggedPosts: 0,
     blockedUsers: 0
   });
+  const [isVerifyingEmails, setIsVerifyingEmails] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -690,6 +691,82 @@ const Admin = () => {
       });
     }
   };
+  const handleVerifyAllEmails = async () => {
+    // 確認ダイアログ
+    const confirmed = window.confirm(
+      '既存ユーザー全員のメール確認フラグ（emailVerified）を true に設定します。\n\n' +
+      'この操作は元に戻せません。続行しますか？'
+    );
+    
+    if (!confirmed) {
+      return;
+    }
+    
+    setIsVerifyingEmails(true);
+    
+    try {
+      // ユーザー一覧を取得
+      const result = await auth.listUsers();
+      const users = result.data || result || [];
+      
+      let updatedCount = 0;
+      let alreadyVerifiedCount = 0;
+      let errorCount = 0;
+      const errors = [];
+      
+      // 各ユーザーを更新
+      for (const user of users) {
+        try {
+          // 既に確認済みの場合はスキップ
+          if (user.emailVerified) {
+            alreadyVerifiedCount++;
+            continue;
+          }
+          
+          // emailVerified を true に設定
+          await auth.updateUserByUuid(user.userUuid, { 
+            emailVerified: true 
+          });
+          
+          updatedCount++;
+          
+          // API レート制限を考慮して待機
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+        } catch (error) {
+          errorCount++;
+          errors.push({ 
+            userUuid: user.userUuid, 
+            email: user.email, 
+            error: error.message 
+          });
+          console.error(`Failed to verify email for ${user.email}:`, error);
+        }
+      }
+      
+      // 結果を表示
+      toast({
+        title: "メール確認完了",
+        description: `${updatedCount}人を確認済みにしました (既に確認済み:${alreadyVerifiedCount}人、エラー:${errorCount}件)`,
+        variant: errorCount > 0 ? "destructive" : "default"
+      });
+      
+      if (errors.length > 0) {
+        console.error('Email verification errors:', errors);
+      }
+      
+    } catch (error) {
+      console.error('Failed to verify emails:', error);
+      toast({
+        title: "エラー",
+        description: `エラーが発生しました: ${error.message}`,
+        variant: "destructive"
+      });
+    } finally {
+      setIsVerifyingEmails(false);
+    }
+  };
+
 
   const handleUpdatePost = async (postId, updates) => {
     try {
@@ -1030,6 +1107,36 @@ const Admin = () => {
                 <p>• ファイル形式: ZIP (sverige-jp-images-YYYY-MM-DD.zip)</p>
                 <p>• 対象: /content/... の画像のみ（外部URLはスキップされます）</p>
                 <p>• 取得できなかった画像は最後に報告されます</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Email Verification */}
+          <Card className="bg-green-50 border-green-200">
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle className="text-green-900">既存ユーザーを全員メール確認済みにする</CardTitle>
+                  <p className="text-sm text-green-700 mt-1">
+                    ※一度きりのバッチ処理：emailVerified フラグを true に一括設定します
+                  </p>
+                </div>
+                <Button 
+                  onClick={handleVerifyAllEmails}
+                  disabled={isVerifyingEmails}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  {isVerifyingEmails ? '実行中...' : '全員を確認済みにする'}
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-sm text-green-700 space-y-1">
+                <p>• 既存ユーザー全員の emailVerified フラグを true に設定します</p>
+                <p>• 既に確認済みのユーザーはスキップされます</p>
+                <p>• 各更新の間に 100ms 待機して API レート制限を考慮します</p>
+                <p>• 完了後、更新人数を toast で報告します（他のデータは変更しません）</p>
               </div>
             </CardContent>
           </Card>
