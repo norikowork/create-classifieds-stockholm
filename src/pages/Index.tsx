@@ -50,6 +50,7 @@ const Index = () => {
   const [subcategories, setSubcategories] = useState([]);
   const [posts, setPosts] = useState([]);
   const [allPosts, setAllPosts] = useState([]);
+  const [forumTopics, setForumTopics] = useState([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
@@ -149,6 +150,15 @@ const Index = () => {
         db.query('user_profiles', { _deleted: 'eq.0' })
       ]);
       
+      // Try to load forum topics separately (may not exist in all environments)
+      let forumTopicsData = [];
+      try {
+        forumTopicsData = await db.query('forum_topics', { _deleted: 'eq.0', order: '_created_at.desc' });
+      } catch (forumError) {
+        console.warn('Forum topics table not available or error loading:', forumError);
+        forumTopicsData = [];
+      }
+      
       setCategories(categoriesData);
       setLocations(locationsData);
       setSubcategories(subcategoriesData);
@@ -215,6 +225,7 @@ const Index = () => {
       });
       
       setAllPosts(postsWithImages);
+      setForumTopics(forumTopicsData);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -944,11 +955,14 @@ const Index = () => {
                   .filter(cat => cat._deleted !== 1)
                   .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
                   .map((category) => {
-                    // Get posts for this category
-                    const categoryPosts = allPosts
-                      .filter(post => post.category_uuid === category.uuid && post.status === 'active')
-                      .sort((a, b) => b._created_at - a._created_at)
-                      .slice(0, 8);
+                    // Special handling for bulletin board category - use forum_topics instead of posts
+                    const isBulletinBoard = category.uuid === 'cat-bulletin';
+                    const categoryItems = isBulletinBoard
+                      ? forumTopics.slice(0, 8)
+                      : allPosts
+                          .filter(post => post.category_uuid === category.uuid && post.status === 'active')
+                          .sort((a, b) => b._created_at - a._created_at)
+                          .slice(0, 8);
                     
                     const CategoryIcon = categoryIcons[category.uuid] || List;
                     
@@ -962,26 +976,26 @@ const Index = () => {
                           </div>
                         </div>
                         
-                        {/* Category Posts */}
+                        {/* Category Posts/Topics */}
                         <div className="p-3">
-                          {categoryPosts.length === 0 ? (
+                          {categoryItems.length === 0 ? (
                             <p className="text-gray-500 text-xs py-2">投稿がありません</p>
                           ) : (
                             <div className="space-y-0">
-                              {categoryPosts.map((post, index) => (
+                              {categoryItems.map((item, index) => (
                                 <Link
-                                  key={post._row_id}
-                                  to={`/post/${post._row_id}`}
+                                  key={item._row_id}
+                                  to={isBulletinBoard ? `/forum/${item._row_id}` : `/post/${item._row_id}`}
                                   className={`block hover:bg-gray-50 transition-colors ${
-                                    index < categoryPosts.length - 1 ? 'border-b border-dotted border-gray-200' : ''
+                                    index < categoryItems.length - 1 ? 'border-b border-dotted border-gray-200' : ''
                                   }`}
                                 >
                                   <div className="flex items-center gap-2 py-1.5 px-1">
                                     <span className="text-xs text-gray-500 flex-shrink-0 w-12">
-                                      {formatDateShort(post._created_at)}
+                                      {formatDateShort(item._created_at)}
                                     </span>
                                     <span className="text-xs truncate flex-1 leading-tight">
-                                      {post.title}
+                                      {item.title}
                                     </span>
                                   </div>
                                 </Link>
@@ -990,14 +1004,24 @@ const Index = () => {
                           )}
                           
                           {/* More Link */}
-                          {categoryPosts.length > 0 && (
-                            <button
-                              onClick={() => handleCategoryChange(category.uuid)}
-                              className="text-blue-600 hover:underline text-xs mt-2 flex items-center gap-1"
-                            >
-                              もっと見る
-                              <ArrowRight className="w-3 h-3" />
-                            </button>
+                          {categoryItems.length > 0 && (
+                            isBulletinBoard ? (
+                              <Link
+                                to="/forum"
+                                className="text-blue-600 hover:underline text-xs mt-2 flex items-center gap-1"
+                              >
+                                もっと見る
+                                <ArrowRight className="w-3 h-3" />
+                              </Link>
+                            ) : (
+                              <button
+                                onClick={() => handleCategoryChange(category.uuid)}
+                                className="text-blue-600 hover:underline text-xs mt-2 flex items-center gap-1"
+                              >
+                                もっと見る
+                                <ArrowRight className="w-3 h-3" />
+                              </button>
+                            )
                           )}
                         </div>
                       </div>
