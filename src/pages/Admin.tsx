@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import auth from '@/lib/shared/kliv-auth';
 import db from '@/lib/shared/kliv-database';
+import functions from '@/lib/shared/kliv-functions';
 import { checkIsAdmin } from '@/lib/isAdmin';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate, Link } from 'react-router-dom';
@@ -601,35 +602,25 @@ const Admin = () => {
     try {
       console.log(`🚫 ユーザー無効化開始: ${userUuid}`);
       
-      // ステップ1: user_profilesのis_active=0に更新
-      console.log(`📝 ステップ1: プロフィール無効化実行: ${userUuid}`);
-      await db.update('user_profiles',
-        { user_uuid: `eq.${userUuid}` },
-        { 
-          is_active: 0,
-          _updated_at: Math.floor(Date.now() / 1000)
-        }
-      );
-      console.log(`✅ ステップ1成功: プロフィール無効化完了: ${userUuid}`);
-      
-      // ステップ2: そのユーザーの投稿を全て非表示にする
-      console.log(`📝 ステップ2: 投稿非表示実行: ${userUuid}`);
-      await db.update('posts',
-        { _created_by: `eq.${userUuid}` },
-        { 
-          is_hidden: 1,
-          _updated_at: Math.floor(Date.now() / 1000)
-        }
-      );
-      console.log(`✅ ステップ2成功: 投稿非表示完了: ${userUuid}`);
-      
-      toast({
-        title: "ユーザーを無効化しました",
-        description: "投稿も非表示にしました",
+      // 管理者用Edge Functionを呼び出して無効化実行
+      const result = await functions.post('admin-user-action', {
+        action: 'deactivate',
+        targetUuid: userUuid
       });
-      console.log(`🎉 ユーザー無効化完全成功: ${userUuid}`);
       
-      loadAdminData();
+      console.log(`🎉 Edge Function結果:`, result);
+      
+      if (result.success) {
+        toast({
+          title: "ユーザーを無効化しました",
+          description: result.message || "投稿も非表示にしました",
+        });
+        console.log(`✅ ユーザー無効化完全成功: ${userUuid} - ${result.postsUpdated}件の投稿を非表示`);
+        
+        loadAdminData();
+      } else {
+        throw new Error(result.error || '無効化に失敗しました');
+      }
       
     } catch (error: any) {
       console.error(`❌ ユーザー無効化失敗: ${error.message}`);
@@ -651,35 +642,25 @@ const Admin = () => {
     try {
       console.log(`✅ ユーザー復活開始: ${userUuid}`);
       
-      // ステップ1: user_profilesのis_active=1に更新
-      console.log(`📝 ステップ1: プロフィール復活実行: ${userUuid}`);
-      await db.update('user_profiles',
-        { user_uuid: `eq.${userUuid}` },
-        { 
-          is_active: 1,
-          _updated_at: Math.floor(Date.now() / 1000)
-        }
-      );
-      console.log(`✅ ステップ1成功: プロフィール復活完了: ${userUuid}`);
-      
-      // ステップ2: そのユーザーの投稿を全て再表示する
-      console.log(`📝 ステップ2: 投稿再表示実行: ${userUuid}`);
-      await db.update('posts',
-        { _created_by: `eq.${userUuid}` },
-        { 
-          is_hidden: 0,
-          _updated_at: Math.floor(Date.now() / 1000)
-        }
-      );
-      console.log(`✅ ステップ2成功: 投稿再表示完了: ${userUuid}`);
-      
-      toast({
-        title: "ユーザーを復活しました",
-        description: "ログイン可能・投稿も再表示されました",
+      // 管理者用Edge Functionを呼び出して復活実行
+      const result = await functions.post('admin-user-action', {
+        action: 'activate',
+        targetUuid: userUuid
       });
-      console.log(`🎉 ユーザー復活完全成功: ${userUuid}`);
       
-      loadAdminData();
+      console.log(`🎉 Edge Function結果:`, result);
+      
+      if (result.success) {
+        toast({
+          title: "ユーザーを復活しました",
+          description: result.message || "ログイン可能・投稿も再表示されました",
+        });
+        console.log(`✅ ユーザー復活完全成功: ${userUuid} - ${result.postsUpdated}件の投稿を再表示`);
+        
+        loadAdminData();
+      } else {
+        throw new Error(result.error || '復活に失敗しました');
+      }
       
     } catch (error: any) {
       console.error(`❌ ユーザー復活失敗: ${error.message}`);
