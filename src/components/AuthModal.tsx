@@ -34,39 +34,67 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) =>
 
   const ensureProfileExists = async (user: any) => {
     try {
+      console.log('🔍 プロフィール存在チェック開始:', user.userUuid);
+      
       const existingProfile = await db.query('user_profiles', {
         user_uuid: `eq.${user.userUuid}`,
         _deleted: 'eq.0'
       });
       
+      console.log('👤 既存プロフィール数:', existingProfile.length);
+      
       if (existingProfile.length === 0) {
         // 新規作成：user_uuid, email, display_name, role: 'user', is_blocked: 0, phone: ''
+        const userEmail = user.email || '';
+        const userDisplayName = user.name || user.email || '';
+        
+        console.log('➕ 新規プロフィール作成:', {
+          user_uuid: user.userUuid,
+          email: userEmail,
+          display_name: userDisplayName
+        });
+        
         await db.insert('user_profiles', {
           user_uuid: user.userUuid,
-          email: user.email || '',
-          display_name: user.name || user.email || '',
+          email: userEmail,
+          display_name: userDisplayName,
           role: 'user',
           is_blocked: 0,
           phone: ''
         });
+        
+        console.log('✅ 新規プロフィール作成完了:', user.userUuid);
       } else {
         // 既存のプロフィールがある場合
         const profile = existingProfile[0];
+        console.log('✅ 既存プロフィール発見:', profile._row_id);
         
         // emailが空または未設定の場合のみ、emailを更新（他の項目は変更しない）
         if (!profile.email || profile.email === '') {
+          const userEmail = user.email || '';
+          console.log('📧 email更新:', profile._row_id, userEmail);
+          
           await db.update('user_profiles', { 
             _row_id: `eq.${profile._row_id}` 
           }, { 
-            email: user.email || '' 
+            email: userEmail 
           });
+          
+          console.log('✅ email更新完了:', profile._row_id);
         }
         
         // roleやis_blockedは既存値を維持（上書きしない）
+        console.log('ℹ️ 既存プロフィール維持:', {
+          role: profile.role,
+          is_blocked: profile.is_blocked
+        });
       }
+      
+      console.log('🎉 プロフィール処理完了:', user.userUuid);
+      
     } catch (err) {
-      // Profile creation is best-effort — don't block login
-      console.error('Profile ensure error:', err);
+      console.error('❌ Profile ensure error:', err);
+      throw err; // 呼び出し元でキャッチできるように再スロー
     }
   };
 
@@ -76,36 +104,95 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) =>
     setError('');
 
     try {
-      const user = await auth.signIn(loginEmail, loginPassword);
+      console.log('🔐 ログイン開始:', loginEmail);
       
-      // ブロックチェック：user_profiles を取得して is_blocked を確認
-      const profiles = await db.query('user_profiles', {
-        user_uuid: `eq.${user.userUuid}`,
-        _deleted: 'eq.0'
-      });
-      
-      const profile = profiles[0];
-      
-      // ブロックされている場合はサインアウトしてエラーを表示
-      if (profile && profile.is_blocked === 1) {
-        await auth.signOut();
-        setError('このアカウントは利用停止中です。運営にお問い合わせください。');
+      // ステップ1: ログイン
+      let user;
+      try {
+        user = await auth.signIn(loginEmail, loginPassword);
+        console.log('✅ ログイン成功[signIn]:', user.userUuid);
+      } catch (signInErr: any) {
+        console.error('❌ ログインエラー[signIn]:', signInErr);
+        setError(`ログインエラー[signIn]: ${signInErr.message || 'メールアドレスまたはパスワードが正しくありません'}`);
         setIsLoading(false);
-        return; // onAuthSuccess や onClose は呼ばずに中断
+        return;
       }
       
-      // ブロックされていない場合は通常通りログインを続行
-      onAuthSuccess(user);
-      onClose();
-      toast({
-        title: "ログイン成功",
-        description: "ようこそ！",
-      });
-
-      // Create profile in background after login completes
-      ensureProfileExists(user);
-    } catch (err: any) {
-      setError(err.message || 'ログインに失敗しました');
+      // ステップ2: プロフィール確実に作成（onAuthSuccessの前に実行）
+      try {
+        console.log('👤 プロフィール作成開始[ensureProfileExists]:', user.userUuid);
+        await ensureProfileExists(user);
+        console.log('✅ プロフィール作成完了[ensureProfileExists]:', user.userUuid);
+      } catch (profileErr: any) {
+        console.error('⚠️ プロフィール作成エラー[ensureProfileExists]:', profileErr);
+        // プロフィール作成が失敗してもログインは続行（ベストエフォート）
+      }
+      
+      // ステップ3: ブロックチェック（プロフィール作成後なので必ず存在するはず）
+      let isBlocked = false;
+      try {
+        const profiles = await db.query('user_profiles', {
+          user_uuid: `eq.${user.userUuid}`,
+          _deleted: 'eq.0'
+        });
+        
+        const profile = profiles[0];
+        if (profile && profile.is_blocked === 1) {
+          console.log('🚫 アカウントブロック済み[isBlocked]:', user.userUuid);
+          isBlocked = true;
+        }
+      } catch (blockCheckErr: any) {
+        console.error('⚠️ ブロックチェックエラー[blockCheck]:', blockCheckErr);
+        // ブロックチェックが失敗してもログインは続行
+      }
+      
+      // ステップ4: ブロックされている場合はサインアウト
+      if (isBlocked) {
+        try {
+          await auth.signOut();
+          console.log('🚪 ブロックによりサインアウト[signOut]:', user.userUuid);
+        } catch (signOutErr: any) {
+          console.error('⚠️ サインアウトエラー[signOut]:', signOutErr);
+        }
+        setError('このアカウントは利用停止中です。運営にお問い合わせください。');
+        setIsLoading(false);
+        return;
+      }
+      
+      // ステップ5: onAuthSuccessを呼ぶ（エラーになってもログインは成立）
+      try {
+        console.log('🎉 onAuthSuccess呼び出し[onAuthSuccess]:', user.userUuid);
+        onAuthSuccess(user);
+        console.log('✅ onAuthSuccess完了[onAuthSuccess]:', user.userUuid);
+      } catch (authSuccessErr: any) {
+        console.error('⚠️ onAuthSuccessエラー[onAuthSuccess]:', authSuccessErr);
+        // onAuthSuccessがエラーでもログインは成立（UI更新が失敗しただけ）
+      }
+      
+      // ステップ6: ダイアログを閉じる
+      try {
+        onClose();
+        console.log('🚪 ダイアログクローズ[onClose]');
+      } catch (closeErr: any) {
+        console.error('⚠️ ダイアログクローズエラー[onClose]:', closeErr);
+      }
+      
+      // ステップ7: トースト表示（エラーになっても無視）
+      try {
+        toast({
+          title: "ログイン成功",
+          description: "ようこそ！",
+        });
+        console.log('🔔 トースト表示[toast]');
+      } catch (toastErr: any) {
+        console.error('⚠️ トースト表示エラー[toast]:', toastErr);
+      }
+      
+      console.log('🎉 ログインフロー完了:', user.userUuid);
+      
+    } catch (unexpectedErr: any) {
+      console.error('❌ 予期しないエラー[unexpected]:', unexpectedErr);
+      setError(`予期しないエラー: ${unexpectedErr.message || '不明なエラーが発生しました'}`);
     } finally {
       setIsLoading(false);
     }
@@ -118,21 +205,54 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) =>
 
     try {
       // 新規登録（自動サインインされる）
+      console.log('📝 新規登録開始:', registerEmail);
       const user = await auth.signUp(registerEmail, registerPassword, registerName);
+      console.log('✅ 新規登録成功[signUp]:', user.userUuid);
       
-      onAuthSuccess(user);
-      handleClose();
+      // プロフィール作成（onAuthSuccessの前に実行）
+      try {
+        console.log('👤 プロフィール作成開始[ensureProfileExists]:', user.userUuid);
+        await ensureProfileExists(user);
+        console.log('✅ プロフィール作成完了[ensureProfileExists]:', user.userUuid);
+      } catch (profileErr: any) {
+        console.error('⚠️ プロフィール作成エラー[ensureProfileExists]:', profileErr);
+        // プロフィール作成が失敗しても登録は続行（ベストエフォート）
+      }
       
-      toast({
-        title: "登録完了",
-        description: "アカウントが作成されました！ようこそ、Sverige.JPへ！",
-        className: "bg-green-50 border-green-200 text-green-900",
-      });
-
-      // Create profile in background after registration completes
-      ensureProfileExists(user);
+      // onAuthSuccessを呼ぶ
+      try {
+        console.log('🎉 onAuthSuccess呼び出し[onAuthSuccess]:', user.userUuid);
+        onAuthSuccess(user);
+        console.log('✅ onAuthSuccess完了[onAuthSuccess]:', user.userUuid);
+      } catch (authSuccessErr: any) {
+        console.error('⚠️ onAuthSuccessエラー[onAuthSuccess]:', authSuccessErr);
+        // onAuthSuccessがエラーでも登録は成立（UI更新が失敗しただけ）
+      }
+      
+      // ダイアログを閉じる
+      try {
+        handleClose();
+        console.log('🚪 ダイアログクローズ[handleClose]');
+      } catch (closeErr: any) {
+        console.error('⚠️ ダイアログクローズエラー[handleClose]:', closeErr);
+      }
+      
+      // トースト表示
+      try {
+        toast({
+          title: "登録完了",
+          description: "アカウントが作成されました！ようこそ、Sverige.JPへ！",
+          className: "bg-green-50 border-green-200 text-green-900",
+        });
+        console.log('🔔 トースト表示[toast]');
+      } catch (toastErr: any) {
+        console.error('⚠️ トースト表示エラー[toast]:', toastErr);
+      }
+      
+      console.log('🎉 新規登録フロー完了:', user.userUuid);
       
     } catch (err: any) {
+      console.error('❌ 新規登録エラー[signUp]:', err);
       setError(err.message || '登録に失敗しました');
     } finally {
       setIsLoading(false);
