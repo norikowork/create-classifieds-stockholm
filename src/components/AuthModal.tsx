@@ -30,6 +30,9 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) =>
   const [confirmPassword, setConfirmPassword] = useState('');
   const [resetStep, setResetStep] = useState(1);
   const [error, setError] = useState('');
+  const [isEmailNotVerified, setIsEmailNotVerified] = useState(false);
+  const [isResendingEmail, setIsResendingEmail] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
   const { toast } = useToast();
 
   const ensureProfileExists = async (user: any) => {
@@ -102,6 +105,8 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) =>
     e.preventDefault();
     setIsLoading(true);
     setError('');
+    setIsEmailNotVerified(false);
+    setResendSuccess(false);
 
     try {
       console.log('🔐 ログイン開始:', loginEmail);
@@ -118,7 +123,46 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) =>
         return;
       }
       
-      // ステップ2: プロフィール確実に作成（onAuthSuccessの前に実行）
+      // ステップ2: emailVerifiedチェック（メール確認済みかどうか）
+      try {
+        console.log('📧 emailVerifiedチェック開始[emailVerifiedCheck]:', user.userUuid);
+        
+        let emailVerified = user.emailVerified;
+        console.log('📧 signIn戻り値のemailVerified:', emailVerified);
+        
+        // signInの戻り値にemailVerifiedがない場合、auth.getUser()で取得
+        if (emailVerified === undefined || emailVerified === null) {
+          console.log('📧 emailVerifiedがundefinedのため、auth.getUser()で再取得');
+          const refreshedUser = await auth.getUser();
+          emailVerified = refreshedUser.emailVerified;
+          console.log('📧 auth.getUser()のemailVerified:', emailVerified);
+        }
+        
+        if (emailVerified === false) {
+          console.log('🚫 emailVerifiedがfalseのため、サインアウト[emailVerified]:', user.userUuid);
+          
+          // サインアウト
+          try {
+            await auth.signOut();
+            console.log('🚪 未承認によりサインアウト[signOut]:', user.userUuid);
+          } catch (signOutErr: any) {
+            console.error('⚠️ サインアウトエラー[signOut]:', signOutErr);
+          }
+          
+          // 未承認ユーザー専用のUIを表示
+          setIsEmailNotVerified(true);
+          setIsLoading(false);
+          return;
+        }
+        
+        console.log('✅ emailVerifiedがtrue[emailVerified]:', user.userUuid);
+        
+      } catch (emailVerifiedErr: any) {
+        console.error('⚠️ emailVerifiedチェックエラー[emailVerifiedCheck]:', emailVerifiedErr);
+        // emailVerifiedチェックが失敗してもログインは続行（安全性のため）
+      }
+      
+      // ステップ3: プロフィール確実に作成（onAuthSuccessの前に実行）
       try {
         console.log('👤 プロフィール作成開始[ensureProfileExists]:', user.userUuid);
         await ensureProfileExists(user);
@@ -128,7 +172,7 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) =>
         // プロフィール作成が失敗してもログインは続行（ベストエフォート）
       }
       
-      // ステップ3: ブロックチェック（プロフィール作成後なので必ず存在するはず）
+      // ステップ4: ブロックチェック（プロフィール作成後なので必ず存在するはず）
       let isBlocked = false;
       try {
         const profiles = await db.query('user_profiles', {
@@ -146,7 +190,7 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) =>
         // ブロックチェックが失敗してもログインは続行
       }
       
-      // ステップ4: ブロックされている場合はサインアウト
+      // ステップ5: ブロックされている場合はサインアウト
       if (isBlocked) {
         try {
           await auth.signOut();
@@ -159,7 +203,7 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) =>
         return;
       }
       
-      // ステップ5: onAuthSuccessを呼ぶ（エラーになってもログインは成立）
+      // ステップ6: onAuthSuccessを呼ぶ（エラーになってもログインは成立）
       try {
         console.log('🎉 onAuthSuccess呼び出し[onAuthSuccess]:', user.userUuid);
         onAuthSuccess(user);
@@ -169,7 +213,7 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) =>
         // onAuthSuccessがエラーでもログインは成立（UI更新が失敗しただけ）
       }
       
-      // ステップ6: ダイアログを閉じる
+      // ステップ7: ダイアログを閉じる
       try {
         onClose();
         console.log('🚪 ダイアログクローズ[onClose]');
@@ -177,7 +221,7 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) =>
         console.error('⚠️ ダイアログクローズエラー[onClose]:', closeErr);
       }
       
-      // ステップ7: トースト表示（エラーになっても無視）
+      // ステップ8: トースト表示（エラーになっても無視）
       try {
         toast({
           title: "ログイン成功",
@@ -345,7 +389,36 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) =>
     setConfirmPassword('');
     setResetStep(1);
     setError('');
+    setIsEmailNotVerified(false);
+    setResendSuccess(false);
     onClose();
+  };
+  
+  const handleResendActivationEmail = async () => {
+    setIsResendingEmail(true);
+    setResendSuccess(false);
+    
+    try {
+      console.log('📧 確認メール再送開始[resendActivation]:', loginEmail);
+      await auth.resendActivation(loginEmail);
+      console.log('✅ 確認メール再送成功[resendActivation]:', loginEmail);
+      
+      setResendSuccess(true);
+      
+      toast({
+        title: "確認メールを再送しました",
+        description: "メールをご確認ください（迷惑メールフォルダもご確認ください）",
+      });
+    } catch (resendErr: any) {
+      console.error('❌ 確認メール再送エラー[resendActivation]:', resendErr);
+      toast({
+        title: "確認メールの再送に失敗しました",
+        description: resendErr.message || "もう一度お試しください",
+        variant: "destructive"
+      });
+    } finally {
+      setIsResendingEmail(false);
+    }
   };
 
   return (
@@ -487,6 +560,34 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) =>
                 {error && (
                   <Alert variant="destructive">
                     <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+                
+                {isEmailNotVerified && (
+                  <Alert variant="destructive" className="bg-yellow-50 border-yellow-200 text-yellow-900">
+                    <AlertDescription>
+                      <div className="space-y-3">
+                        <p className="font-semibold">ユーザー登録は完了していますが、まだメール確認が済んでいません。</p>
+                        <p className="text-sm">登録時に送られた確認メールのリンクをクリックして承認してください。承認後にログインできます。</p>
+                        
+                        {!resendSuccess ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleResendActivationEmail}
+                            disabled={isResendingEmail}
+                            className="w-full"
+                          >
+                            {isResendingEmail ? '送信中...' : '確認メールを再送する'}
+                          </Button>
+                        ) : (
+                          <div className="text-sm font-semibold text-green-700">
+                            ✓ 確認メールを再送しました。メールをご確認ください（迷惑メールフォルダもご確認ください）
+                          </div>
+                        )}
+                      </div>
+                    </AlertDescription>
                   </Alert>
                 )}
                 <Button 

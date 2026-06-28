@@ -898,6 +898,115 @@ const Admin = () => {
     try {
       await db.delete('posts', { _row_id: `eq.${postId}` });
       
+  const handleVerifyAllEmails = async () => {
+    if (!confirm('⚠️ 既存ユーザーを全員メール確認済みに設定します。\n\nこれはロックアウト防止の措置です。\n\n続行しますか？')) {
+      return;
+    }
+    
+    setIsVerifyingEmails(true);
+    
+    try {
+      const userProfiles = await db.query('user_profiles', { _deleted: 'eq.0' });
+      
+      toast({
+        title: "ブラウザコンソールでスクリプトを実行してください",
+        description: `${userProfiles.length}人のユーザーを処理します。詳細はコンソールを確認してください。`,
+      });
+      
+      console.log('═══════════════════════════════════════════════════════════════');
+      console.log('🔧 既存ユーザーを全員メール確認済みに設定するバッチ処理');
+      console.log('═══════════════════════════════════════════════════════════════');
+      console.log('');
+      console.log(`📊 処理対象ユーザー数: ${userProfiles.length}人`);
+      console.log('');
+      console.log('以下のスクリプトをブラウザコンソールにコピー＆ペーストして実行してください:');
+      console.log('');
+      console.log('─'.repeat(70));
+      console.log(`
+(async () => {
+  try {
+    // authオブジェクトを取得
+    const auth = window.auth;
+    if (!auth) {
+      console.error('❌ authオブジェクトが見つかりません。ログインしているか確認してください。');
+      return;
+    }
+    
+    // 既存ユーザーのUUIDリストを取得
+    const userUuids = ${JSON.stringify(userProfiles.map(p => p.user_uuid))};
+    
+    let updatedCount = 0;
+    let alreadyVerifiedCount = 0;
+    let errors = [];
+    
+    console.log(\`🔧 \${userUuids.length}人のユーザーをメール確認済みに設定開始...\`);
+    
+    for (const userUuid of userUuids) {
+      try {
+        // auth.updateUserを使ってemailVerifiedをtrueに設定
+        const result = await auth.updateUser({ userUuid: userUuid, emailVerified: true });
+        
+        if (result.emailVerified === true) {
+          updatedCount++;
+          console.log(\`✅ \${userUuid} をメール確認済みに設定しました\`);
+        } else {
+          alreadyVerifiedCount++;
+          console.log(\`ℹ️ \${userUuid} は既にメール確認済みです\`);
+        }
+        
+        // 100msディレイを追加してレート制限を回避
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+      } catch (err) {
+        errors.push(\`\${userUuid}: \${err.message}\`);
+        console.error(\`❌ \${userUuid} の更新に失敗: \${err.message}\`);
+      }
+    }
+    
+    console.log('');
+    console.log('═══════════════════════════════════════════════════════════════');
+    console.log('📊 バッチ処理完了');
+    console.log('═══════════════════════════════════════════════════════════════');
+    console.log(\`✅ 更新成功: \${updatedCount}人\`);
+    console.log(\`ℹ️ 既に確認済み: \${alreadyVerifiedCount}人\`);
+    console.log(\`❌ エラー: \${errors.length}件\`);
+    
+    if (errors.length > 0) {
+      console.log('');
+      console.log('エラー詳細:');
+      errors.forEach(err => console.log(\`  - \${err}\`));
+    }
+    
+    alert(\`✅ バッチ処理完了！\\n\\n更新成功: \${updatedCount}人\\n既に確認済み: \${alreadyVerifiedCount}人\\nエラー: \${errors.length}件\`);
+    
+  } catch (error) {
+    console.error('❌ バッチ処理エラー:', error);
+    alert(\`❌ エラーが発生しました: \${error.message}\`);
+  }
+})();
+      `.trim());
+      console.log('─'.repeat(70));
+      console.log('');
+      console.log('💡 ヒント:');
+      console.log('   1. 上記のスクリプトをコピーしてください');
+      console.log('   2. ブラウザの開発者ツールを開いてください (F12)');
+      console.log('   3. Consoleタブを選択してください');
+      console.log('   4. スクリプトを貼り付けてEnterキーを押してください');
+      console.log('   5. 処理が完了するまでお待ちください（数分かかる場合があります）');
+      console.log('');
+      console.log('═══════════════════════════════════════════════════════════════');
+      
+    } catch (error) {
+      console.error('❌ ユーザー承認エラー:', error);
+      toast({
+        title: "ユーザー承認エラー",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsVerifyingEmails(false);
+    }
+  };
       toast({
         title: "投稿削除完了",
         description: "投稿が削除されました",
