@@ -61,7 +61,7 @@ const Admin = () => {
     flaggedPosts: 0,
     blockedUsers: 0
   });
-  const [isVerifyingEmails, setIsVerifyingEmails] = useState(false);
+
   const [spamReports, setSpamReports] = useState([]);
   const [spamReportsByPost, setSpamReportsByPost] = useState({});
   const { toast } = useToast();
@@ -790,156 +790,41 @@ const Admin = () => {
       });
     }
   };
+
   const handleVerifyAllEmails = async () => {
-    // 確認ダイアログ
-    const confirmed = window.confirm(
-      '既存ユーザー全員のメール確認フラグ（emailVerified）を true に設定します。\n\n' +
-      'この操作は元に戻せません。続行しますか？'
-    );
-    
-    if (!confirmed) {
-      return;
-    }
-    
-    setIsVerifyingEmails(true);
-    
-    try {
-      // ユーザー一覧を取得
-      const result = await auth.listUsers();
-      const users = result.data || result || [];
-      
-      let updatedCount = 0;
-      let alreadyVerifiedCount = 0;
-      let errorCount = 0;
-      const errors = [];
-      
-      // 各ユーザーを更新
-      for (const user of users) {
-        try {
-          // 既に確認済みの場合はスキップ
-          if (user.emailVerified) {
-            alreadyVerifiedCount++;
-            continue;
-          }
-          
-          // emailVerified を true に設定
-          await auth.updateUserByUuid(user.userUuid, { 
-            emailVerified: true 
-          });
-          
-          updatedCount++;
-          
-          // API レート制限を考慮して待機
-          await new Promise(resolve => setTimeout(resolve, 100));
-          
-        } catch (error) {
-          errorCount++;
-          errors.push({ 
-            userUuid: user.userUuid, 
-            email: user.email, 
-            error: error.message 
-          });
-          console.error(`Failed to verify email for ${user.email}:`, error);
-        }
-      }
-      
-      // 結果を表示
-      toast({
-        title: "メール確認完了",
-        description: `${updatedCount}人を確認済みにしました (既に確認済み:${alreadyVerifiedCount}人、エラー:${errorCount}件)`,
-        variant: errorCount > 0 ? "destructive" : "default"
-      });
-      
-      if (errors.length > 0) {
-        console.error('Email verification errors:', errors);
-      }
-      
-    } catch (error) {
-      console.error('Failed to verify emails:', error);
-      toast({
-        title: "エラー",
-        description: `エラーが発生しました: ${error.message}`,
-        variant: "destructive"
-      });
-    } finally {
-      setIsVerifyingEmails(false);
-    }
-  };
-
-
-  const handleUpdatePost = async (postId, updates) => {
-    try {
-      await db.update('posts',
-        { _row_id: `eq.${postId}` },
-        { 
-          ...updates,
-          _updated_at: Math.floor(Date.now() / 1000)
-        }
-      );
-      
-      toast({
-        title: "投稿更新完了",
-        description: "投稿が更新されました",
-      });
-      
-      setEditingPost(null);
-      loadAdminData();
-    } catch (error) {
-      console.error('Error updating post:', error);
-      toast({
-        title: "エラー",
-        description: "投稿の更新に失敗しました",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleDeletePost = async (postId) => {
-    try {
-      await db.delete('posts', { _row_id: `eq.${postId}` });
-      
-  const handleVerifyAllEmails = async () => {
-    if (!confirm('⚠️ 既存ユーザーを全員メール確認済みに設定します。\n\nこれはロックアウト防止の措置です。\n\n続行しますか？')) {
-      return;
-    }
-    
-    setIsVerifyingEmails(true);
-    
     try {
       const userProfiles = await db.query('user_profiles', { _deleted: 'eq.0' });
       
-      toast({
-        title: "ブラウザコンソールでスクリプトを実行してください",
-        description: `${userProfiles.length}人のユーザーを処理します。詳細はコンソールを確認してください。`,
-      });
+      // スクリプトを生成（UUIDリストを安全に埋め込む）
+      const userUuidsArray = userProfiles.map(p => p.user_uuid);
+      const userUuidsJSON = JSON.stringify(userUuidsArray);
       
-      console.log('═══════════════════════════════════════════════════════════════');
-      console.log('🔧 既存ユーザーを全員メール確認済みに設定するバッチ処理');
-      console.log('═══════════════════════════════════════════════════════════════');
-      console.log('');
-      console.log(`📊 処理対象ユーザー数: ${userProfiles.length}人`);
-      console.log('');
-      console.log('以下のスクリプトをブラウザコンソールにコピー＆ペーストして実行してください:');
-      console.log('');
-      console.log('─'.repeat(70));
-      console.log(`
+      const script = `
 (async () => {
   try {
-    // authオブジェクトを取得
-    const auth = window.auth;
+    // authオブジェクトを動的にインポート
+    const authModule = await import('/src/lib/shared/kliv-auth.js');
+    const auth = authModule.default;
+    
     if (!auth) {
       console.error('❌ authオブジェクトが見つかりません。ログインしているか確認してください。');
+      alert('❌ authオブジェクトが見つかりません。ログインしているか確認してください。');
       return;
     }
     
-    // 既存ユーザーのUUIDリストを取得
-    const userUuids = ${JSON.stringify(userProfiles.map(p => p.user_uuid))};
+    // 既存ユーザーのUUIDリストを使用
+    const userUuids = ${userUuidsJSON};
     
     let updatedCount = 0;
     let alreadyVerifiedCount = 0;
     let errors = [];
     
-    console.log(\`🔧 \${userUuids.length}人のユーザーをメール確認済みに設定開始...\`);
+    console.log('═══════════════════════════════════════════════════════════════');
+    console.log('🔧 既存ユーザーを全員メール確認済みに設定するバッチ処理');
+    console.log('═══════════════════════════════════════════════════════════════');
+    console.log(\`📊 処理対象ユーザー数: \${userUuids.length}人\`);
+    console.log('');
+    console.log('処理開始...');
     
     for (const userUuid of userUuids) {
       try {
@@ -977,47 +862,47 @@ const Admin = () => {
       errors.forEach(err => console.log(\`  - \${err}\`));
     }
     
-    alert(\`✅ バッチ処理完了！\\n\\n更新成功: \${updatedCount}人\\n既に確認済み: \${alreadyVerifiedCount}人\\nエラー: \${errors.length}件\`);
+    alert(\`✅ バッチ処理完了！\\n\\n更新成功: \${updatedCount}人\\n既に確認済み: \${alreadyVerifiedCount}人\\nエラー: \${errors.length}件\\n\\n詳細はブラウザコンソールを確認してください。\`);
     
   } catch (error) {
     console.error('❌ バッチ処理エラー:', error);
     alert(\`❌ エラーが発生しました: \${error.message}\`);
   }
 })();
-      `.trim());
-      console.log('─'.repeat(70));
+      `.trim();
+      
+      // クリップボードにコピー
+      await navigator.clipboard.writeText(script);
+      
+      toast({
+        title: "スクリプトをクリップボードにコピーしました",
+        description: `${userProfiles.length}人のユーザーを処理します。開発者ツールで実行してください。`,
+      });
+      
+      console.log('═══════════════════════════════════════════════════════════════');
+      console.log('🔧 既存ユーザーを全員メール確認済みに設定するバッチ処理');
+      console.log('═══════════════════════════════════════════════════════════════');
       console.log('');
-      console.log('💡 ヒント:');
-      console.log('   1. 上記のスクリプトをコピーしてください');
+      console.log(`📊 処理対象ユーザー数: ${userProfiles.length}人`);
+      console.log('');
+      console.log('✅ スクリプトをクリップボードにコピーしました！');
+      console.log('');
+      console.log('📋 実行手順:');
+      console.log('   1. スクリプトは既にクリップボードにコピーされています');
       console.log('   2. ブラウザの開発者ツールを開いてください (F12)');
       console.log('   3. Consoleタブを選択してください');
-      console.log('   4. スクリプトを貼り付けてEnterキーを押してください');
-      console.log('   5. 処理が完了するまでお待ちください（数分かかる場合があります）');
+      console.log('   4. スクリプトを貼り付けて (Ctrl+V / Cmd+V)');
+      console.log('   5. Enterキーを押してください');
+      console.log('   6. 処理が完了するまでお待ちください（数分かかる場合があります）');
       console.log('');
+      console.log('💡 ヒント: 処理が完了すると、結果がアラートで表示されます');
       console.log('═══════════════════════════════════════════════════════════════');
       
     } catch (error) {
-      console.error('❌ ユーザー承認エラー:', error);
+      console.error('❌ スクリプト生成エラー:', error);
       toast({
-        title: "ユーザー承認エラー",
+        title: "スクリプト生成エラー",
         description: error.message,
-        variant: "destructive"
-      });
-    } finally {
-      setIsVerifyingEmails(false);
-    }
-  };
-      toast({
-        title: "投稿削除完了",
-        description: "投稿が削除されました",
-      });
-      
-      setSelectedPost(null);
-      loadAdminData();
-    } catch (error) {
-      toast({
-        title: "エラー",
-        description: "投稿の削除に失敗しました: " + (error?.message || 'Unknown error'),
         variant: "destructive"
       });
     }
@@ -1328,23 +1213,26 @@ const Admin = () => {
                   <p className="text-sm text-green-700 mt-1">
                     ※一度きりのバッチ処理：emailVerified フラグを true に一括設定します
                   </p>
+                  <p className="text-xs text-green-600 mt-1">
+                    ⚠️ 新規登録者のメール確認には影響しません。既存ユーザーのロックアウト防止用です。
+                  </p>
                 </div>
                 <Button 
                   onClick={handleVerifyAllEmails}
-                  disabled={isVerifyingEmails}
                   className="bg-green-600 hover:bg-green-700"
                 >
                   <CheckCircle className="h-4 w-4 mr-2" />
-                  {isVerifyingEmails ? '実行中...' : '全員を確認済みにする'}
+                  スクリプトをコピー
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
               <div className="text-sm text-green-700 space-y-1">
+                <p>• 「スクリプトをコピー」ボタンをクリックすると、スクリプトがクリップボードにコピーされます</p>
+                <p>• ブラウザの開発者ツール (F12) → Consoleタブで貼り付けて実行してください</p>
+                <p>• 処理が完了すると、結果がアラートで表示されます</p>
                 <p>• 既存ユーザー全員の emailVerified フラグを true に設定します</p>
-                <p>• 既に確認済みのユーザーはスキップされます</p>
                 <p>• 各更新の間に 100ms 待機して API レート制限を考慮します</p>
-                <p>• 完了後、更新人数を toast で報告します（他のデータは変更しません）</p>
               </div>
             </CardContent>
           </Card>
