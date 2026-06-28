@@ -593,76 +593,101 @@ const Admin = () => {
     }
   };
 
-  const handleDeleteUser = async (userUuid) => {
-    let appSideSuccess = false;
-    let authSideSuccess = false;
-    let authError = null;
+  const handleDeactivateUser = async (userUuid) => {
+    if (!window.confirm('このユーザーを無効化しますか？（ログイン不可・投稿も非表示になります。あとで復活できます）')) {
+      return;
+    }
     
     try {
-      console.log(`🗑️ ユーザー削除開始: ${userUuid}`);
+      console.log(`🚫 ユーザー無効化開始: ${userUuid}`);
       
-      // ステップ1: user_profilesをソフトデリート（確実に成功させる）
-      try {
-        console.log(`📝 ステップ1: プロフィールソフトデリート実行: ${userUuid}`);
-        
-        // スパム機能で動いているのと同じdb.updateの呼び方に統一
-        await db.update('user_profiles',
-          { user_uuid: `eq.${userUuid}` },
-          { 
-            _deleted: 1,
-            _updated_at: Math.floor(Date.now() / 1000)
-          }
-        );
-        
-        appSideSuccess = true;
-        console.log(`✅ ステップ1成功: プロフィールソフトデリート完了: ${userUuid}`);
-      } catch (profileErr: any) {
-        console.error(`❌ ステップ1失敗: プロフィールソフトデリートエラー: ${profileErr.message}`);
-        throw profileErr; // プロフィール削除が失敗したら全体を失敗にする
-      }
-      
-      // ステップ2: 認証アカウント削除（失敗しても無視）
-      try {
-        console.log(`🔐 ステップ2: 認証アカウント削除実行: ${userUuid}`);
-        await auth.deleteUser(userUuid);
-        authSideSuccess = true;
-        console.log(`✅ ステップ2成功: 認証アカウント削除完了: ${userUuid}`);
-      } catch (authErr: any) {
-        authError = authErr;
-        console.error(`⚠️ ステップ2失敗: 認証アカウント削除エラー（無視）: ${authErr.message}`);
-        // 認証アカウント削除が失敗しても、プロフィール削除は成功扱い
-      }
-      
-      // 結果メッセージを分けて表示
-      if (authSideSuccess) {
-        // 両方成功
-        toast({
-          title: "ユーザー削除完了",
-          description: "ユーザーを削除しました（同じメールで再登録できます）",
-        });
-        console.log(`🎉 ユーザー削除完全成功: ${userUuid}`);
-      } else {
-        // アプリ側のみ成功
-        toast({
-          title: "一覧から削除しました",
-          description: "認証アカウントは残っているため、同じメールでの再登録はできない場合があります",
-          variant: "default"
-        });
-        console.log(`⚠️ ユーザー削除部分成功: ${userUuid}（プロフィール削除のみ成功）`);
-        if (authError) {
-          console.error(`認証アカウント削除エラー詳細:`, authError);
+      // ステップ1: user_profilesのis_active=0に更新
+      console.log(`📝 ステップ1: プロフィール無効化実行: ${userUuid}`);
+      await db.update('user_profiles',
+        { user_uuid: `eq.${userUuid}` },
+        { 
+          is_active: 0,
+          _updated_at: Math.floor(Date.now() / 1000)
         }
-      }
+      );
+      console.log(`✅ ステップ1成功: プロフィール無効化完了: ${userUuid}`);
+      
+      // ステップ2: そのユーザーの投稿を全て非表示にする
+      console.log(`📝 ステップ2: 投稿非表示実行: ${userUuid}`);
+      await db.update('posts',
+        { _created_by: `eq.${userUuid}` },
+        { 
+          is_hidden: 1,
+          _updated_at: Math.floor(Date.now() / 1000)
+        }
+      );
+      console.log(`✅ ステップ2成功: 投稿非表示完了: ${userUuid}`);
+      
+      toast({
+        title: "ユーザーを無効化しました",
+        description: "投稿も非表示にしました",
+      });
+      console.log(`🎉 ユーザー無効化完全成功: ${userUuid}`);
       
       loadAdminData();
       
     } catch (error: any) {
-      console.error(`❌ ユーザー削除失敗: ${error.message}`);
+      console.error(`❌ ユーザー無効化失敗: ${error.message}`);
       
       // 本当のエラー内容を表示
       toast({
         title: "エラー",
-        description: `ユーザーの削除に失敗しました: ${error.message || '不明なエラー'}`,
+        description: `ユーザーの無効化に失敗しました: ${error.message || '不明なエラー'}`,
+        variant: "destructive"
+      });
+    }
+  };
+  
+  const handleReactivateUser = async (userUuid) => {
+    if (!window.confirm('このユーザーを復活させますか？（ログイン可能・投稿も再表示されます）')) {
+      return;
+    }
+    
+    try {
+      console.log(`✅ ユーザー復活開始: ${userUuid}`);
+      
+      // ステップ1: user_profilesのis_active=1に更新
+      console.log(`📝 ステップ1: プロフィール復活実行: ${userUuid}`);
+      await db.update('user_profiles',
+        { user_uuid: `eq.${userUuid}` },
+        { 
+          is_active: 1,
+          _updated_at: Math.floor(Date.now() / 1000)
+        }
+      );
+      console.log(`✅ ステップ1成功: プロフィール復活完了: ${userUuid}`);
+      
+      // ステップ2: そのユーザーの投稿を全て再表示する
+      console.log(`📝 ステップ2: 投稿再表示実行: ${userUuid}`);
+      await db.update('posts',
+        { _created_by: `eq.${userUuid}` },
+        { 
+          is_hidden: 0,
+          _updated_at: Math.floor(Date.now() / 1000)
+        }
+      );
+      console.log(`✅ ステップ2成功: 投稿再表示完了: ${userUuid}`);
+      
+      toast({
+        title: "ユーザーを復活しました",
+        description: "ログイン可能・投稿も再表示されました",
+      });
+      console.log(`🎉 ユーザー復活完全成功: ${userUuid}`);
+      
+      loadAdminData();
+      
+    } catch (error: any) {
+      console.error(`❌ ユーザー復活失敗: ${error.message}`);
+      
+      // 本当のエラー内容を表示
+      toast({
+        title: "エラー",
+        description: `ユーザーの復活に失敗しました: ${error.message || '不明なエラー'}`,
         variant: "destructive"
       });
     }
@@ -976,6 +1001,16 @@ const Admin = () => {
       // 未承認ユーザー：メールアドレスがないユーザー
       filtered = filtered.filter(user => !user.email || user.email === '');
     }
+    
+    // ソート: 有効ユーザーが上、無効ユーザーは下にまとまる
+    filtered.sort((a, b) => {
+      // is_activeの降順（1が上、0が下）
+      if (a.is_active !== b.is_active) {
+        return b.is_active - a.is_active;
+      }
+      // 同じis_activeの場合、_created_atの降順（新しい順）
+      return b._created_at - a._created_at;
+    });
     
     return filtered;
   };
@@ -1419,89 +1454,114 @@ const Admin = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {filteredUsers().map((userItem) => (
-                    <div key={userItem.user_uuid} className="border rounded-lg p-4">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3">
-                            <h3 className="font-semibold">
-                              {userItem.display_name || '不明'}
-                            </h3>
-                            {/* アカウント状態バッジ */}
-                            {userItem.email ? (
-                              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                <CheckCircle className="h-3 w-3 mr-1" />
-                                有効
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
-                                <Clock className="h-3 w-3 mr-1" />
-                                未承認
-                              </Badge>
-                            )}
-                            {userItem.is_blocked === 1 && (
-                              <Badge variant="destructive">
-                                <Ban className="h-3 w-3 mr-1" />
-                                ブロック済み
-                              </Badge>
-                            )}
-                            {userItem.email === user?.email && (
-                              <Badge variant="outline" className="bg-blue-50">
-                                <Shield className="h-3 w-3 mr-1" />
-                                管理者（あなた）
-                              </Badge>
-                            )}
+                  {filteredUsers().map((userItem) => {
+                    const isInactive = userItem.is_active === 0;
+                    
+                    return (
+                      <div 
+                        key={userItem.user_uuid} 
+                        className={`border rounded-lg p-4 ${isInactive ? 'bg-gray-100 opacity-60' : ''}`}
+                      >
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3">
+                              <h3 className="font-semibold">
+                                {userItem.display_name || '不明'}
+                              </h3>
+                              {/* アカウント状態バッジ */}
+                              {isInactive ? (
+                                <Badge variant="outline" className="bg-gray-100 text-gray-700 border-gray-300">
+                                  <X className="h-3 w-3 mr-1" />
+                                  無効
+                                </Badge>
+                              ) : userItem.email ? (
+                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                  <CheckCircle className="h-3 w-3 mr-1" />
+                                  有効
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+                                  <Clock className="h-3 w-3 mr-1" />
+                                  未承認
+                                </Badge>
+                              )}
+                              {userItem.is_blocked === 1 && (
+                                <Badge variant="destructive">
+                                  <Ban className="h-3 w-3 mr-1" />
+                                  ブロック済み
+                                </Badge>
+                              )}
+                              {userItem.email === user?.email && (
+                                <Badge variant="outline" className="bg-blue-50">
+                                  <Shield className="h-3 w-3 mr-1" />
+                                  管理者（あなた）
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-gray-600 text-sm">{userItem.email || 'メール未設定'}</p>
+                            <p className="text-xs text-gray-500">
+                              登録日: {formatDate(userItem._created_at)}
+                            </p>
+                            <div className="mt-2 text-sm text-gray-600">
+                              投稿数: {allPosts.filter(p => p._created_by === userItem.user_uuid).length}
+                            </div>
                           </div>
-                          <p className="text-gray-600 text-sm">{userItem.email || 'メール未設定'}</p>
-                          <p className="text-xs text-gray-500">
-                            登録日: {formatDate(userItem._created_at)}
-                          </p>
-                          <div className="mt-2 text-sm text-gray-600">
-                            投稿数: {allPosts.filter(p => p._created_by === userItem.user_uuid).length}
-                          </div>
-                        </div>
-                        <div className="flex space-x-2">
-                          {userItem.email !== user?.email && (
-                            <>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleEditUser(userItem)}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              {userItem.is_blocked === 1 ? (
+                          <div className="flex space-x-2">
+                            {userItem.email !== user?.email && (
+                              <>
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => handleUnblockUser(userItem.user_uuid)}
+                                  onClick={() => handleEditUser(userItem)}
                                 >
-                                  <Check className="h-4 w-4 mr-1" />
-                                  ブロック解除
+                                  <Edit className="h-4 w-4" />
                                 </Button>
-                              ) : (
-                                <Button
-                                  variant="secondary"
-                                  size="sm"
-                                  onClick={() => handleBlockUser(userItem.user_uuid)}
-                                >
-                                  <Ban className="h-4 w-4 mr-1" />
-                                  ブロック
-                                </Button>
-                              )}
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => handleDeleteUser(userItem.user_uuid)}
-                              >
-                                <Trash className="h-4 w-4" />
-                              </Button>
-                            </>
-                          )}
+                                {userItem.is_blocked === 1 ? (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleUnblockUser(userItem.user_uuid)}
+                                  >
+                                    <Check className="h-4 w-4 mr-1" />
+                                    ブロック解除
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    onClick={() => handleBlockUser(userItem.user_uuid)}
+                                  >
+                                    <Ban className="h-4 w-4 mr-1" />
+                                    ブロック
+                                  </Button>
+                                )}
+                                {isInactive ? (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="bg-green-50 text-green-700 border-green-200"
+                                    onClick={() => handleReactivateUser(userItem.user_uuid)}
+                                  >
+                                    <CheckCircle className="h-4 w-4 mr-1" />
+                                    復活
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={() => handleDeactivateUser(userItem.user_uuid)}
+                                  >
+                                    <X className="h-4 w-4 mr-1" />
+                                    無効化
+                                  </Button>
+                                )}
+                              </>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>

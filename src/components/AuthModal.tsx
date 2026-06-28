@@ -172,8 +172,9 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) =>
         // プロフィール作成が失敗してもログインは続行（ベストエフォート）
       }
       
-      // ステップ4: ブロックチェック（プロフィール作成後なので必ず存在するはず）
+      // ステップ4: ブロック・無効化チェック（プロフィール作成後なので必ず存在するはず）
       let isBlocked = false;
+      let isInactive = false;
       try {
         const profiles = await db.query('user_profiles', {
           user_uuid: `eq.${user.userUuid}`,
@@ -185,12 +186,30 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) =>
           console.log('🚫 アカウントブロック済み[isBlocked]:', user.userUuid);
           isBlocked = true;
         }
+        
+        if (profile && profile.is_active === 0) {
+          console.log('🚫 アカウント無効化済み[isInactive]:', user.userUuid);
+          isInactive = true;
+        }
       } catch (blockCheckErr: any) {
-        console.error('⚠️ ブロックチェックエラー[blockCheck]:', blockCheckErr);
-        // ブロックチェックが失敗してもログインは続行
+        console.error('⚠️ ステータスチェックエラー[statusCheck]:', blockCheckErr);
+        // ステータスチェックが失敗してもログインは続行
       }
       
-      // ステップ5: ブロックされている場合はサインアウト
+      // ステップ5: 無効化されている場合はサインアウト
+      if (isInactive) {
+        try {
+          await auth.signOut();
+          console.log('🚪 無効化によりサインアウト[signOut]:', user.userUuid);
+        } catch (signOutErr: any) {
+          console.error('⚠️ サインアウトエラー[signOut]:', signOutErr);
+        }
+        setError('このアカウントは無効化されています。運営にお問い合わせください。');
+        setIsLoading(false);
+        return;
+      }
+      
+      // ステップ6: ブロックされている場合はサインアウト
       if (isBlocked) {
         try {
           await auth.signOut();
@@ -203,7 +222,7 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) =>
         return;
       }
       
-      // ステップ6: onAuthSuccessを呼ぶ（エラーになってもログインは成立）
+      // ステップ7: onAuthSuccessを呼ぶ（エラーになってもログインは成立）
       try {
         console.log('🎉 onAuthSuccess呼び出し[onAuthSuccess]:', user.userUuid);
         onAuthSuccess(user);
@@ -213,7 +232,7 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) =>
         // onAuthSuccessがエラーでもログインは成立（UI更新が失敗しただけ）
       }
       
-      // ステップ7: ダイアログを閉じる
+      // ステップ8: ダイアログを閉じる
       try {
         onClose();
         console.log('🚪 ダイアログクローズ[onClose]');
@@ -221,7 +240,7 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) =>
         console.error('⚠️ ダイアログクローズエラー[onClose]:', closeErr);
       }
       
-      // ステップ8: トースト表示（エラーになっても無視）
+      // ステップ9: トースト表示（エラーになっても無視）
       try {
         toast({
           title: "ログイン成功",
