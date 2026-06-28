@@ -605,20 +605,14 @@ const Admin = () => {
       try {
         console.log(`📝 ステップ1: プロフィールソフトデリート実行: ${userUuid}`);
         
-        // raw fetchでPATCHメソッドを使って更新（kliv-database.jsのPUTを回避）
-        const response = await fetch(
-          `/api/v2/database/user_profiles?user_uuid=eq.${userUuid}`,
-          {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ _deleted: 1 })
+        // スパム機能で動いているのと同じdb.updateの呼び方に統一
+        await db.update('user_profiles',
+          { user_uuid: `eq.${userUuid}` },
+          { 
+            _deleted: 1,
+            _updated_at: Math.floor(Date.now() / 1000)
           }
         );
-        
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || errorData.error || 'プロフィール削除に失敗しました');
-        }
         
         appSideSuccess = true;
         console.log(`✅ ステップ1成功: プロフィールソフトデリート完了: ${userUuid}`);
