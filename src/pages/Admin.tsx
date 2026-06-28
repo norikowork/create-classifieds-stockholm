@@ -594,42 +594,69 @@ const Admin = () => {
   };
 
   const handleDeleteUser = async (userUuid) => {
+    let appSideSuccess = false;
+    let authSideSuccess = false;
+    let authError = null;
+    
     try {
-      // ユーザープロフィールを削除
-      await db.update('user_profiles',
-        { user_uuid: `eq.${userUuid}` },
-        { _deleted: 1 }
-      );
+      console.log(`🗑️ ユーザー削除開始: ${userUuid}`);
       
-      // ユーザーの投稿を削除
-      await db.update('posts',
-        { _created_by: `eq.${userUuid}` },
-        { _deleted: 1 }
-      );
+      // ステップ1: user_profilesをソフトデリート（確実に成功させる）
+      try {
+        console.log(`📝 ステップ1: プロフィールソフトデリート実行: ${userUuid}`);
+        await db.update('user_profiles',
+          { user_uuid: `eq.${userUuid}` },
+          { _deleted: 1 }
+        );
+        appSideSuccess = true;
+        console.log(`✅ ステップ1成功: プロフィールソフトデリート完了: ${userUuid}`);
+      } catch (profileErr: any) {
+        console.error(`❌ ステップ1失敗: プロフィールソフトデリートエラー: ${profileErr.message}`);
+        throw profileErr; // プロフィール削除が失敗したら全体を失敗にする
+      }
       
-      // ユーザーの掲示板トピックを削除
-      await db.update('forum_topics',
-        { _created_by: `eq.${userUuid}` },
-        { _deleted: 1 }
-      );
+      // ステップ2: 認証アカウント削除（失敗しても無視）
+      try {
+        console.log(`🔐 ステップ2: 認証アカウント削除実行: ${userUuid}`);
+        await auth.deleteUser(userUuid);
+        authSideSuccess = true;
+        console.log(`✅ ステップ2成功: 認証アカウント削除完了: ${userUuid}`);
+      } catch (authErr: any) {
+        authError = authErr;
+        console.error(`⚠️ ステップ2失敗: 認証アカウント削除エラー（無視）: ${authErr.message}`);
+        // 認証アカウント削除が失敗しても、プロフィール削除は成功扱い
+      }
       
-      // ユーザーの掲示板返信を削除
-      await db.update('forum_replies',
-        { _created_by: `eq.${userUuid}` },
-        { _deleted: 1 }
-      );
-      
-      toast({
-        title: "ユーザー削除完了",
-        description: "ユーザーと関連データ（投稿、掲示板、プロフィール）が削除されました",
-      });
+      // 結果メッセージを分けて表示
+      if (authSideSuccess) {
+        // 両方成功
+        toast({
+          title: "ユーザー削除完了",
+          description: "ユーザーを削除しました（同じメールで再登録できます）",
+        });
+        console.log(`🎉 ユーザー削除完全成功: ${userUuid}`);
+      } else {
+        // アプリ側のみ成功
+        toast({
+          title: "一覧から削除しました",
+          description: "認証アカウントは残っているため、同じメールでの再登録はできない場合があります",
+          variant: "default"
+        });
+        console.log(`⚠️ ユーザー削除部分成功: ${userUuid}（プロフィール削除のみ成功）`);
+        if (authError) {
+          console.error(`認証アカウント削除エラー詳細:`, authError);
+        }
+      }
       
       loadAdminData();
-    } catch (error) {
-      console.error('Error deleting user:', error);
+      
+    } catch (error: any) {
+      console.error(`❌ ユーザー削除失敗: ${error.message}`);
+      
+      // 本当のエラー内容を表示
       toast({
         title: "エラー",
-        description: "ユーザーの削除に失敗しました",
+        description: `ユーザーの削除に失敗しました: ${error.message || '不明なエラー'}`,
         variant: "destructive"
       });
     }
