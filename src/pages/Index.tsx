@@ -469,7 +469,7 @@ const Index = () => {
 
   const loadPosts = async () => {
     try {
-      const postsData = await db.query('posts', { status: 'eq.active', _deleted: 'eq.0', order: '_created_at.desc' });
+      const postsData = await db.query('posts', { status: 'eq.active', _deleted: 'eq.0', is_hidden: 'eq.0', order: '_created_at.desc' });
       // Parse images JSON for each post
       const postsWithImages = await Promise.all(postsData.map(async post => {
         let images = [];
