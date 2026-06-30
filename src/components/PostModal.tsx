@@ -817,6 +817,17 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
         return;
       }
 
+      // メール確認チェック：未承認ユーザーは投稿できない
+      if (!currentUser.emailVerified || currentUser.emailVerified === false) {
+        toast({
+          title: 'メール確認が必要です',
+          description: 'メール確認が完了していないため投稿できません。確認メールのリンクをクリックして承認してください。（迷惑メールフォルダもご確認ください）',
+          variant: 'destructive'
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
       if (editingPost && editingPost._created_by !== currentUser.userUuid && !isAdmin) {
         throw new Error('この投稿を編集する権限がありません。自分の投稿のみ編集できます。');
       }

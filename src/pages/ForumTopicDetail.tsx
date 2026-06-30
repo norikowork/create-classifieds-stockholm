@@ -98,6 +98,11 @@ export default function ForumTopicDetail() {
       toast.error('返信するにはログインしてください');
       return;
     }
+    // メール確認チェック：未承認ユーザーは投稿できない
+    if (!user.emailVerified || user.emailVerified === false) {
+      toast.error('メール確認が必要です。メール確認が完了していないため返信できません。確認メールのリンクをクリックして承認してください。（迷惑メールフォルダもご確認ください）');
+      return;
+    }
 
     setIsSubmitting(true);
     try {

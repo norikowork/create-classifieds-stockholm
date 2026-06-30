@@ -33,6 +33,7 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) =>
   const [isEmailNotVerified, setIsEmailNotVerified] = useState(false);
   const [isResendingEmail, setIsResendingEmail] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
   const { toast } = useToast();
 
   const ensureProfileExists = async (user: any) => {
@@ -261,58 +262,44 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) =>
     }
   };
 
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
+    setRegistrationSuccess(false);
 
     try {
-      // 新規登録（自動サインインされる）
       console.log('📝 新規登録開始:', registerEmail);
+      
+      // ステップ1: アカウント作成（自動サインインされる）
       const user = await auth.signUp(registerEmail, registerPassword, registerName);
-      console.log('✅ 新規登録成功[signUp]:', user.userUuid);
+      console.log('✅ アカウント作成成功[signUp]:', user.userUuid, 'emailVerified:', user.emailVerified);
       
-      // プロフィール作成（onAuthSuccessの前に実行）
+      // ステップ2: 確認メール送信
       try {
-        console.log('👤 プロフィール作成開始[ensureProfileExists]:', user.userUuid);
-        await ensureProfileExists(user);
-        console.log('✅ プロフィール作成完了[ensureProfileExists]:', user.userUuid);
-      } catch (profileErr: any) {
-        console.error('⚠️ プロフィール作成エラー[ensureProfileExists]:', profileErr);
-        // プロフィール作成が失敗しても登録は続行（ベストエフォート）
+        console.log('📧 確認メール送信開始[resendActivation]:', registerEmail);
+        await auth.resendActivation(registerEmail);
+        console.log('✅ 確認メール送信成功[resendActivation]:', registerEmail);
+      } catch (emailError: any) {
+        console.error('⚠️ 確認メール送信エラー[resendActivation]:', emailError);
+        // 確認メール送信が失敗しても、アカウント作成自体は成功したので続行
+        // エラーログのみ記録（ユーザーには通知しない）
       }
       
-      // onAuthSuccessを呼ぶ
+      // ステップ3: サインアウト（未承認ユーザーをサイトに入れないようにする）
       try {
-        console.log('🎉 onAuthSuccess呼び出し[onAuthSuccess]:', user.userUuid);
-        onAuthSuccess(user);
-        console.log('✅ onAuthSuccess完了[onAuthSuccess]:', user.userUuid);
-      } catch (authSuccessErr: any) {
-        console.error('⚠️ onAuthSuccessエラー[onAuthSuccess]:', authSuccessErr);
-        // onAuthSuccessがエラーでも登録は成立（UI更新が失敗しただけ）
+        console.log('🚪 サインアウト実行[signOut]:', user.userUuid);
+        await auth.signOut();
+        console.log('✅ サインアウト成功[signOut]:', user.userUuid);
+      } catch (signOutError: any) {
+        console.error('⚠️ サインアウトエラー[signOut]:', signOutError);
+        // サインアウトが失敗しても続行
       }
       
-      // ダイアログを閉じる
-      try {
-        handleClose();
-        console.log('🚪 ダイアログクローズ[handleClose]');
-      } catch (closeErr: any) {
-        console.error('⚠️ ダイアログクローズエラー[handleClose]:', closeErr);
-      }
-      
-      // トースト表示
-      try {
-        toast({
-          title: "登録完了",
-          description: "アカウントが作成されました！ようこそ、Sverige.JPへ！",
-          className: "bg-green-50 border-green-200 text-green-900",
-        });
-        console.log('🔔 トースト表示[toast]');
-      } catch (toastErr: any) {
-        console.error('⚠️ トースト表示エラー[toast]:', toastErr);
-      }
-      
-      console.log('🎉 新規登録フロー完了:', user.userUuid);
+      // ステップ4: 登録成功メッセージを表示
+      setRegistrationSuccess(true);
+      console.log('🎉 新規登録完了: 登録成功メッセージ表示');
       
     } catch (err: any) {
       console.error('❌ 新規登録エラー[signUp]:', err);
@@ -410,6 +397,7 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) =>
     setError('');
     setIsEmailNotVerified(false);
     setResendSuccess(false);
+    setRegistrationSuccess(false);
     onClose();
   };
   
@@ -670,7 +658,19 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) =>
                 {isLoading ? '登録中...' : '登録'}
               </Button>
             </form>
+              {registrationSuccess && (
+                <Alert className="bg-green-50 border-green-200 text-green-900">
+                  <AlertDescription>
+                    <div className="space-y-2">
+                      <p className="font-semibold">ご登録ありがとうございます。</p>
+                      <p className="text-sm">確認メールをお送りしました。メール内のリンクをクリックして承認した後、ログインしてください。</p>
+                      <p className="text-xs">メールが見当たらない場合は迷惑メールフォルダもご確認ください</p>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              )}
           </TabsContent>
+
         </Tabs>
       </DialogContent>
     </Dialog>
