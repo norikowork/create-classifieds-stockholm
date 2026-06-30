@@ -674,6 +674,46 @@ const Admin = () => {
     }
   };
 
+  const handleDeleteUser = async (userUuid) => {
+    if (!window.confirm('このユーザーを完全に削除します。元に戻せません。認証アカウントも削除され、同じメールで再登録できるようになります。よろしいですか？')) {
+      return;
+    }
+    
+    try {
+      console.log(`🗑️ 完全削除開始: ${userUuid}`);
+      
+      // 管理者用Edge Functionを呼び出して完全削除実行
+      const result = await functions.post('admin-user-action', {
+        action: 'delete',
+        targetUuid: userUuid
+      });
+      
+      console.log(`🎉 Edge Function結果:`, result);
+      
+      if (result.success) {
+        toast({
+          title: "完全に削除しました",
+          description: result.message || "同じメールで再登録できます",
+        });
+        console.log(`✅ 完全削除成功: ${userUuid} - 認証削除: ${result.authDeleted}, プロフィール削除: ${result.profileDeleted}`);
+        
+        loadAdminData();
+      } else {
+        throw new Error(result.error || '完全削除に失敗しました');
+      }
+      
+    } catch (error: any) {
+      console.error(`❌ 完全削除失敗: ${error.message}`);
+      
+      // 本当のエラー内容を表示
+      toast({
+        title: "エラー",
+        description: `ユーザーの完全削除に失敗しました: ${error.message || '不明なエラー'}`,
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleBlockUser = async (userUuid) => {
     try {
       // 常にuser_profiles.is_blockedを更新
@@ -1517,24 +1557,45 @@ const Admin = () => {
                                   </Button>
                                 )}
                                 {isInactive ? (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="bg-green-50 text-green-700 border-green-200"
-                                    onClick={() => handleReactivateUser(userItem.user_uuid)}
-                                  >
-                                    <CheckCircle className="h-4 w-4 mr-1" />
-                                    復活
-                                  </Button>
+                                  <>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="bg-green-50 text-green-700 border-green-200"
+                                      onClick={() => handleReactivateUser(userItem.user_uuid)}
+                                    >
+                                      <CheckCircle className="h-4 w-4 mr-1" />
+                                      復活
+                                    </Button>
+                                    <Button
+                                      variant="destructive"
+                                      size="sm"
+                                      onClick={() => handleDeleteUser(userItem.user_uuid)}
+                                    >
+                                      <Trash className="h-4 w-4 mr-1" />
+                                      完全削除
+                                    </Button>
+                                  </>
                                 ) : (
-                                  <Button
-                                    variant="destructive"
-                                    size="sm"
-                                    onClick={() => handleDeactivateUser(userItem.user_uuid)}
-                                  >
-                                    <X className="h-4 w-4 mr-1" />
-                                    無効化
-                                  </Button>
+                                  <>
+                                    <Button
+                                      variant="destructive"
+                                      size="sm"
+                                      onClick={() => handleDeactivateUser(userItem.user_uuid)}
+                                    >
+                                      <X className="h-4 w-4 mr-1" />
+                                      無効化
+                                    </Button>
+                                    <Button
+                                      variant="destructive"
+                                      size="sm"
+                                      className="bg-red-600 hover:bg-red-700"
+                                      onClick={() => handleDeleteUser(userItem.user_uuid)}
+                                    >
+                                      <Trash className="h-4 w-4 mr-1" />
+                                      完全削除
+                                    </Button>
+                                  </>
                                 )}
                               </>
                             )}
