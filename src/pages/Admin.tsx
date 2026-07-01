@@ -675,35 +675,85 @@ const Admin = () => {
   };
 
   const handleDeleteUser = async (userUuid) => {
-    if (!window.confirm('このユーザーを完全に削除します。元に戻せません。認証アカウントも削除され、同じメールで再登録できるようになります。よろしいですか？')) {
+    const targetUser = users.find(u => u.user_uuid === userUuid);
+    const targetEmail = targetUser?.email || '';
+    
+    if (!window.confirm(`このユーザーを完全に削除します。元に戻せません。認証アカウントも削除され、同じメールで再登録できるようになります。\n\nメール: ${targetEmail}\n\nよろしいですか？`)) {
       return;
     }
     
     try {
-      console.log(`🗑️ 完全削除開始: ${userUuid}`);
+      console.log(`🗑️ 完全削除開始: ${userUuid} (${targetEmail})`);
       
       // 管理者用Edge Functionを呼び出して完全削除実行
-      const result = await functions.post('admin-user-action', {
+      const deleteResult = await functions.post('admin-user-action', {
         action: 'delete',
         targetUuid: userUuid
       });
       
-      console.log(`🎉 Edge Function結果:`, result);
+      console.log(`🎉 削除結果:`, deleteResult);
       
-      if (result.success) {
+      if (deleteResult.success) {
         toast({
           title: "完全に削除しました",
-          description: result.message || "同じメールで再登録できます",
+          description: deleteResult.message || "同じメールで再登録できます",
         });
-        console.log(`✅ 完全削除成功: ${userUuid} - 認証削除: ${result.authDeleted}, プロフィール削除: ${result.profileDeleted}`);
+        console.log(`✅ 完全削除成功: ${userUuid} - 認証削除: ${deleteResult.authDeleted}, プロフィール削除: ${deleteResult.profileDeleted}`);
+        
+        // 削除確認: 認証アカウントとプロフィールが本当に消えているか確認
+        console.log(`🔍 削除確認開始: ${userUuid} (${targetEmail})`);
+        
+        try {
+          const verifyResult = await functions.post('admin-user-action', {
+            action: 'verify-delete',
+            targetUuid: userUuid,
+            targetEmail: targetEmail
+          });
+          
+          console.log(`🔍 削除確認結果:`, verifyResult);
+          
+          if (verifyResult.verified) {
+            if (verifyResult.success) {
+              console.log(`✅ 削除確認成功: 認証アカウントもプロフィールも存在しません`);
+              toast({
+                title: "削除確認完了",
+                description: "認証アカウントもプロフィールも完全に削除されました",
+                className: "bg-green-50 border-green-200 text-green-900"
+              });
+            } else {
+              console.warn(`⚠️ 削除確認失敗: ${verifyResult.message}`);
+              if (verifyResult.authExists) {
+                console.error(`❌ 認証アカウントがまだ存在します: ${verifyResult.authCheckError}`);
+                toast({
+                  title: "警告: 認証アカウントが残っています",
+                  description: "プロフィールは削除されましたが、認証アカウントがまだ存在します",
+                  variant: "destructive"
+                });
+              } else if (verifyResult.profileExists) {
+                console.error(`❌ プロフィールがまだ存在します: ${verifyResult.profileCheckError}`);
+                toast({
+                  title: "警告: プロフィールが残っています",
+                  description: "認証アカウントは削除されましたが、プロフィールがまだ存在します",
+                  variant: "destructive"
+                });
+              }
+            }
+          } else {
+            console.error(`❌ 削除確認に失敗しました: ${verifyResult.message || '不明なエラー'}`);
+          }
+        } catch (verifyError: any) {
+          console.error(`❌ 削除確認エラー: ${verifyError.message}`);
+          console.error(`❌ 削除確認スタック: ${verifyError.stack}`);
+        }
         
         loadAdminData();
       } else {
-        throw new Error(result.error || '完全削除に失敗しました');
+        throw new Error(deleteResult.message || deleteResult.error || '完全削除に失敗しました');
       }
       
     } catch (error: any) {
       console.error(`❌ 完全削除失敗: ${error.message}`);
+      console.error(`❌ 完全削除スタック: ${error.stack}`);
       
       // 本当のエラー内容を表示
       toast({
@@ -1473,6 +1523,107 @@ const Admin = () => {
                   </div>
                 </div>
               </CardHeader>
+              
+              {/* 削除後のテスト登録機能 */}
+              <CardContent className="bg-yellow-50 border-b border-yellow-200">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-semibold text-yellow-900">削除後のテスト登録</h4>
+                      <p className="text-sm text-yellow-700 mt-1">
+                        完全削除したユーザーと同じメールアドレスで、新規登録ができるかテストできます
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white border border-yellow-200 rounded p-3">
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Label htmlFor="test-email" className="text-sm">テストメール:</Label>
+                        <Input
+                          id="test-email"
+                          type="email"
+                          placeholder="削除したユーザーのメール"
+                          className="w-64 h-8"
+                        />
+                        <Input
+                          id="test-password"
+                          type="password"
+                          placeholder="パスワード (8文字以上)"
+                          className="w-48 h-8"
+                        />
+                        <Input
+                          id="test-name"
+                          type="text"
+                          placeholder="名前"
+                          className="w-32 h-8"
+                        />
+                        <Button
+                          size="sm"
+                          className="bg-yellow-600 hover:bg-yellow-700"
+                          onClick={() => {
+                            const email = (document.getElementById('test-email') as HTMLInputElement)?.value || '';
+                            const password = (document.getElementById('test-password') as HTMLInputElement)?.value || '';
+                            const name = (document.getElementById('test-name') as HTMLInputElement)?.value || '';
+                            
+                            if (!email || !password) {
+                              toast({
+                                title: "入力エラー",
+                                description: "メールとパスワードを入力してください",
+                                variant: "destructive"
+                              });
+                              return;
+                            }
+                            
+                            // ブラウザコンソールで実行するスクリプトを生成
+                            const script = `
+// テスト登録スクリプト - ${email}
+(async () => {
+  try {
+    console.log('🧪 テスト登録開始: ${email}');
+    
+    // auth.signUp()を実行
+    const result = await window.auth.signUp('${email}', '${password}', '${name}');
+    
+    console.log('✅ テスト登録成功:', result);
+    alert('✅ テスト登録成功！\\n\\nメール: ${email}\\nUUID: ' + result.userUuid);
+  } catch (error) {
+    console.error('❌ テスト登録失敗:', error);
+    alert('❌ テスト登録失敗\\n\\nエラー: ' + error.message);
+  }
+})();
+                            `.trim();
+                            
+                            // クリップボードにコピー
+                            navigator.clipboard.writeText(script).then(() => {
+                              toast({
+                                title: "スクリプトをコピーしました",
+                                description: "ブラウザの開発者ツール (F12) → Consoleタブで貼り付けて実行してください",
+                                className: "bg-green-50 border-green-200 text-green-900"
+                              });
+                            }).catch(() => {
+                              toast({
+                                title: "コピー失敗",
+                                description: "スクリプトのコピーに失敗しました",
+                                variant: "destructive"
+                              });
+                            });
+                          }}
+                        >
+                          スクリプトをコピー
+                        </Button>
+                      </div>
+                      <div className="text-xs text-yellow-700 space-y-1">
+                        <p>• テストしたいメールとパスワードを入力して、「スクリプトをコピー」ボタンをクリック</p>
+                        <p>• ブラウザの開発者ツール (F12) → Consoleタブで貼り付けて実行</p>
+                        <p>• 登録成功なら「メールは既に登録されています」エラーは出ません</p>
+                        <p>• 失敗なら、認証アカウントがまだ残っています</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+              
               <CardContent>
                 <div className="space-y-4">
                   {filteredUsers().map((userItem) => {
