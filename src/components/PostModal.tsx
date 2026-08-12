@@ -16,7 +16,6 @@ import { checkIsAdmin } from '@/lib/isAdmin';
 import { useToast } from '@/hooks/use-toast';
 import { ShoppingBag, Search, Briefcase, User, Trash2, Package, MapPin, Mail, Phone, Image as ImageIcon, X, Wallet } from 'lucide-react';
 import { format } from 'date-fns';
-import { ja } from 'date-fns/locale';
 
 interface PostModalProps {
   isOpen: boolean;
@@ -850,7 +849,7 @@ export const PostModal = ({ isOpen, onClose, onPostCreated, user, editingPost }:
       if (formData.category_uuid === 'cat-events' && formData.event_date) {
         const eventDate = new Date(formData.event_date);
         postData.event_date = Math.floor(eventDate.getTime() / 1000);
-        postData.event_date_readable = format(eventDate, 'yyyy年MM月dd日 (EEEE)', { locale: ja });
+        postData.event_date_readable = format(eventDate, 'yyyy年MM月dd日 (EEEE)');
       }
 
       if (editingPost) {

@@ -7,8 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { MessageSquare, Loader2 } from 'lucide-react';
 import { FORUM_CATEGORIES } from '@/constants/forumCategories';
-import db from '@/lib/shared/kliv-database';
-import auth from '@/lib/shared/kliv-auth';
+import db from '@/lib/shared/kliv-database.js';
+import auth from '@/lib/shared/kliv-auth.js';
 import { toast } from 'sonner';
 
 interface ForumTopicFormProps {

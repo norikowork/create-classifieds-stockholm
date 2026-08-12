@@ -8,12 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { MessageSquare, Search, Clock, User, Reply, Home, Briefcase, GraduationCap, Car, Heart, Stethoscope, Baby, ShoppingBag, Plane, Calendar, Users, Wrench, DollarSign, FileText, Coffee, Shield } from 'lucide-react';
 import ForumTopicForm from '@/components/ForumTopicForm';
 import { FORUM_CATEGORIES } from '@/constants/forumCategories';
-import db from '@/lib/shared/kliv-database';
-import auth from '@/lib/shared/kliv-auth';
+import db from '@/lib/shared/kliv-database.js';
+import auth from '@/lib/shared/kliv-auth.js';
 import { checkIsAdmin } from '@/lib/isAdmin';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
-import { ja } from 'date-fns/locale';
 import Footer from '@/components/Footer';
 
 interface ForumTopic {
@@ -377,8 +376,7 @@ export default function ForumPage() {
                       <div className="flex items-center">
                         <Clock className="w-4 h-4 mr-1" />
                         {formatDistanceToNow(new Date(topic._created_at * 1000), { 
-                          addSuffix: true, 
-                          locale: ja 
+                          addSuffix: true
                         })}
                       </div>
                       <div className="flex items-center">

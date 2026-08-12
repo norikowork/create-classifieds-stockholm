@@ -1,6 +1,6 @@
 // Sweden.JP - Stockholm Japanese Community - Main index page
 import { useState, useEffect } from 'react';
-import { Search, Plus, User, Briefcase, ShoppingBag, Home, Phone, Wrench, Shield, Image as ImageIcon, ArrowRight, Users, GraduationCap, Star, ChevronLeft, ChevronRight, List, Grid3X3, MapPin, MessageSquare, Mail } from 'lucide-react';
+import { Search, Plus, User, Briefcase, ShoppingBag, Home, Phone, Wrench, Shield, Image as ImageIcon, ArrowRight, Music, Trophy, Palette, Users, GraduationCap, Star, ChevronLeft, ChevronRight, List, Grid3X3, MapPin, MessageSquare, Heart, Handshake, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';

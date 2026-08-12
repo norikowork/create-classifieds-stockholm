@@ -7,10 +7,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { ArrowLeft, MessageSquare, Clock, User, Reply, Loader2, Send, Trash2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { ja } from 'date-fns/locale';
 import Footer from '@/components/Footer';
-import db from '@/lib/shared/kliv-database';
-import auth from '@/lib/shared/kliv-auth';
+import db from '@/lib/shared/kliv-database.js';
+import auth from '@/lib/shared/kliv-auth.js';
 import { toast } from 'sonner';
 
 interface ForumTopic {
@@ -216,8 +215,7 @@ export default function ForumTopicDetail() {
                 <CardDescription className="flex items-center text-sm">
                   <Clock className="w-4 h-4 mr-1" />
                   {formatDistanceToNow(new Date(topic._created_at * 1000), { 
-                    addSuffix: true, 
-                    locale: ja 
+                    addSuffix: true
                   })}
                 </CardDescription>
               </div>
@@ -313,8 +311,7 @@ export default function ForumTopicDetail() {
                       <div className="flex items-center gap-2 mb-2 text-sm text-gray-500">
                         <Clock className="w-4 h-4" />
                         {formatDistanceToNow(new Date(reply._created_at * 1000), { 
-                          addSuffix: true, 
-                          locale: ja 
+                          addSuffix: true
                         })}
                       </div>
                       <div className="prose max-w-none whitespace-pre-wrap">
