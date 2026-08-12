@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
-import { MapPin } from 'lucide-react';
 
 // Fix for default marker icons in Leaflet with webpack/vite
 delete (L.Icon.Default.prototype as any)._getIconUrl;

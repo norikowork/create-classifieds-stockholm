@@ -29,12 +29,8 @@ interface Location {
 interface MapViewProps {
   posts: Post[];
   locations: Location[];
-  onPostClick?: (postId: string) => void;
+  onPostClick?: (postId: string | null) => void;
   selectedPostId?: string | null;
-  getCategoryName?: (categoryUuid: string) => string;
-  getCategoryColor?: (categoryUuid: string) => string;
-  getLocationName?: (locationId: string) => string;
-  formatDate?: (timestamp: number) => string;
   userCounty?: string | null;
 }
 
@@ -69,9 +65,6 @@ const COUNTY_ZOOM = 8;
 const SWEDEN_CENTER: [number, number] = [60.0, 15.0];  // Center of Sweden
 const SWEDEN_BOUNDS: [[number, number], [number, number]] = [[55.0, 10.5], [69.5, 24.0]];
 const DEFAULT_ZOOM = 5;  // Lower zoom to show more of Sweden
-
-// Cache for popup content to avoid recreating
-const popupContentCache = new Map<string, string>();
 
 // Load CSS once
 let leafletCssLoaded = false;
@@ -124,7 +117,7 @@ const loadCustomStyles = () => {
   customStylesLoaded = true;
 };
 
-export default function MapView({ posts, locations, onPostClick, selectedPostId, getCategoryName, getCategoryColor, getLocationName, formatDate, userCounty }: MapViewProps) {
+export default function MapView({ posts, locations, onPostClick, selectedPostId, userCounty }: MapViewProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markersRef = useRef<Map<string, L.Marker>>(new Map());

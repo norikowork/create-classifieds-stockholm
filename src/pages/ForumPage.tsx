@@ -8,8 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { MessageSquare, Search, Clock, User, Reply, Home, Briefcase, GraduationCap, Car, Heart, Stethoscope, Baby, ShoppingBag, Plane, Calendar, Users, Wrench, DollarSign, FileText, Coffee, Shield } from 'lucide-react';
 import ForumTopicForm from '@/components/ForumTopicForm';
 import { FORUM_CATEGORIES } from '@/constants/forumCategories';
-import db from '@/lib/shared/kliv-database.js';
-import auth from '@/lib/shared/kliv-auth.js';
+import db from '@/lib/shared/kliv-database';
+import auth from '@/lib/shared/kliv-auth';
 import { checkIsAdmin } from '@/lib/isAdmin';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';

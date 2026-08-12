@@ -9,8 +9,8 @@ import { ArrowLeft, MessageSquare, Clock, User, Reply, Loader2, Send, Trash2 } f
 import { formatDistanceToNow } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import Footer from '@/components/Footer';
-import db from '@/lib/shared/kliv-database.js';
-import auth from '@/lib/shared/kliv-auth.js';
+import db from '@/lib/shared/kliv-database';
+import auth from '@/lib/shared/kliv-auth';
 import { toast } from 'sonner';
 
 interface ForumTopic {
